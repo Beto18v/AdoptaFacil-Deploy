@@ -1,0 +1,9 @@
+# .dockerignore for Laravel
+node_modules/
+vendor/
+.env
+.env.*
+.git
+.gitignore
+Dockerfile
+database/
