@@ -56,8 +56,8 @@ class DashboardController extends Controller
         for ($i = 5; $i >= 0; $i--) {
             $fecha = Carbon::now()->subMonths($i);
             $adopciones = Solicitud::where('estado', 'aprobada')
-                ->whereRaw('EXTRACT(YEAR FROM created_at) = ?', [$fecha->year])
-                ->whereRaw('EXTRACT(MONTH FROM created_at) = ?', [$fecha->month])
+                ->whereYear('created_at', $fecha->year)
+                ->whereMonth('created_at', $fecha->month)
                 ->count();
 
             $adopcionesPorMes[] = [

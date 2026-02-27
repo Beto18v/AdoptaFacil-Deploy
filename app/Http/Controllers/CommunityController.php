@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 /**
  * CommunityController - Controlador principal del módulo de comunidad y red social
@@ -113,20 +114,19 @@ class CommunityController extends Controller
                         ->unique()
                         ->toArray();
 
-                // Preparar payload
-                $payload = [
-                    'emails' => $emails,
-                    'subject' => 'Nueva campaña en AdoptaFácil 🐾',
-                    'description' => $request->content,
-                ];
+                    // Preparar payload
+                    $payload = [
+                        'emails' => $emails,
+                        'subject' => 'Nueva campaña en AdoptaFácil 🐾',
+                        'description' => $request->content,
+                    ];
 
-                \Log::info('Campaña detectada. Notificaciones bulk deshabilitadas por migración.', [
-                    'total_emails' => count($emails),
-                ]);
-
-            } catch (\Exception $e) {
-                    \Log::error('Error al procesar campaña :', [
-                    'error' => $e->getMessage(),
+                    Log::info('Campaña detectada. Notificaciones bulk deshabilitadas por migración.', [
+                        'total_emails' => count($emails),
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('Error al procesar campaña :', [
+                        'error' => $e->getMessage(),
                     ]);
                 }
             }
