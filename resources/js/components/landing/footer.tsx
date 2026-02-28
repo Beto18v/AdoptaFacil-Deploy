@@ -1,4 +1,6 @@
 import { Link } from '@inertiajs/react';
+import { FaEnvelope, FaInstagram, FaMapMarkerAlt, FaWhatsapp } from 'react-icons/fa';
+import { SiTiktok } from 'react-icons/si';
 
 export default function Footer() {
     return (
@@ -10,8 +12,8 @@ export default function Footer() {
             </div>
 
             <div className="relative container mx-auto px-6">
-                <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
-                    <div className="lg:col-span-1">
+                <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-3">
+                    <div>
                         <div className="mb-6">
                             <h3 className="mb-4 bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-2xl font-bold text-transparent">
                                 ADOPTAFÁCIL
@@ -29,50 +31,27 @@ export default function Footer() {
                     </div>
 
                     <div>
-                        <h4 className="mb-6 text-lg font-semibold text-blue-400">Enlaces útiles</h4>
-                        <ul className="space-y-3">
-                            <li>
-                                <Link
-                                    href="/como-adoptar"
-                                    className="text-gray-300 transition-all duration-300 hover:translate-x-1 hover:text-green-400"
-                                >
-                                    → Cómo adoptar
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="/faq" className="text-gray-300 transition-all duration-300 hover:translate-x-1 hover:text-blue-400">
-                                    → Preguntas frecuentes
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="/blog" className="text-gray-300 transition-all duration-300 hover:translate-x-1 hover:text-purple-400">
-                                    → Blog
-                                </Link>
-                            </li>
-                            <li>
-                                <Link
-                                    href="/testimonios"
-                                    className="text-gray-300 transition-all duration-300 hover:translate-x-1 hover:text-green-400"
-                                >
-                                    → Testimonios
-                                </Link>
-                            </li>
-                        </ul>
-                    </div>
-
-                    <div>
                         <h4 className="mb-6 text-lg font-semibold text-green-400">Contacto</h4>
                         <ul className="space-y-3">
                             <li className="flex items-center space-x-3 text-gray-300">
-                                <span className="text-blue-400">📧</span>
-                                <span>info@adoptafacil.com</span>
+                                <FaEnvelope className="text-blue-400" size={18} />
+                                <a href="mailto:notificacionesadoptafacil@gmail.com" className="transition-colors hover:text-blue-300">
+                                    notificacionesadoptafacil@gmail.com
+                                </a>
                             </li>
                             <li className="flex items-center space-x-3 text-gray-300">
-                                <span className="text-green-400">📱</span>
-                                <span>+57 123 456 7890</span>
+                                <FaWhatsapp className="text-green-400" size={18} />
+                                <a
+                                    href="https://wa.me/573102079572"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="transition-colors hover:text-green-300"
+                                >
+                                    +57 3102079572
+                                </a>
                             </li>
                             <li className="flex items-center space-x-3 text-gray-300">
-                                <span className="text-purple-400">📍</span>
+                                <FaMapMarkerAlt className="text-purple-400" size={18} />
                                 <span>Colombia</span>
                             </li>
                         </ul>
@@ -81,24 +60,24 @@ export default function Footer() {
                     <div>
                         <h4 className="mb-6 text-lg font-semibold text-purple-400">Síguenos</h4>
                         <div className="mb-6 flex space-x-4">
-                            <Link
-                                href="#"
-                                className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-blue-600 text-white transition-all duration-300 hover:scale-110 hover:shadow-lg hover:shadow-blue-500/50"
-                            >
-                                📘
-                            </Link>
-                            <Link
-                                href="#"
+                            <a
+                                href="https://www.instagram.com/adoptafacil/"
+                                target="_blank"
+                                rel="noreferrer"
+                                aria-label="Instagram de AdoptaFácil"
                                 className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-white transition-all duration-300 hover:scale-110 hover:shadow-lg hover:shadow-purple-500/50"
                             >
-                                📷
-                            </Link>
-                            <Link
-                                href="#"
-                                className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-blue-400 to-blue-500 text-white transition-all duration-300 hover:scale-110 hover:shadow-lg hover:shadow-blue-400/50"
+                                <FaInstagram size={18} />
+                            </a>
+                            <a
+                                href="https://www.tiktok.com/@adoptafacil2025"
+                                target="_blank"
+                                rel="noreferrer"
+                                aria-label="TikTok de AdoptaFácil"
+                                className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-gray-700 to-black text-white transition-all duration-300 hover:scale-110 hover:shadow-lg hover:shadow-gray-500/50"
                             >
-                                🐦
-                            </Link>
+                                <SiTiktok size={18} />
+                            </a>
                         </div>
                         <p className="text-sm text-gray-400">Síguenos para ver historias de adopción y consejos para el cuidado de mascotas</p>
                     </div>
@@ -108,14 +87,8 @@ export default function Footer() {
                     <div className="flex flex-col items-center justify-between space-y-4 md:flex-row md:space-y-0">
                         <p className="text-center text-gray-400 md:text-left">© 2025 Adoptafácil. Todos los derechos reservados.</p>
                         <div className="flex space-x-6 text-sm text-gray-400">
-                            <Link href="/privacidad" className="transition-colors hover:text-blue-400">
-                                Privacidad
-                            </Link>
                             <Link href="/terminos" className="transition-colors hover:text-green-400">
-                                Términos
-                            </Link>
-                            <Link href="/cookies" className="transition-colors hover:text-purple-400">
-                                Cookies
+                                Términos y condiciones
                             </Link>
                         </div>
                     </div>
