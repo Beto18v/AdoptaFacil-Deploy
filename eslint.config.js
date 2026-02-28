@@ -10,6 +10,16 @@ export default [
     js.configs.recommended,
     ...typescript.configs.recommended,
     {
+        files: ['tests/Performance/**/*.js'],
+        languageOptions: {
+            globals: {
+                __ENV: 'readonly',
+                __VU: 'readonly',
+                __ITER: 'readonly',
+            },
+        },
+    },
+    {
         ...react.configs.flat.recommended,
         ...react.configs.flat['jsx-runtime'], // Required for React 17+
         languageOptions: {
