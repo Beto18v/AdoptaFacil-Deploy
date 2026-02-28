@@ -4,6 +4,7 @@ import { createInertiaApp } from '@inertiajs/react';
 import axios from 'axios';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
+import { Toaster } from 'sonner';
 import { initializeTheme } from './hooks/use-appearance';
 
 // Configurar Axios para enviar cookies automáticamente
@@ -38,7 +39,12 @@ createInertiaApp({
             el._reactRootContainer = createRoot(el);
         }
         // @ts-expect-error: _reactRootContainer es una propiedad personalizada para evitar múltiples createRoot
-        el._reactRootContainer.render(<App {...props} />);
+        el._reactRootContainer.render(
+            <>
+                <App {...props} />
+                <Toaster richColors position="top-right" />
+            </>,
+        );
     },
     progress: {
         color: '#4B5563',

@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\Solicitud;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 /**
@@ -97,11 +98,9 @@ class SolicitudesController extends Controller
                 ->first();
 
             if ($existingSolicitud) {
-                return response()->json([
-                    'errors' => [
-                        'mascota_id' => ['Ya tienes una solicitud pendiente o aprobada para esta mascota.']
-                    ]
-                ], 422);
+                throw ValidationException::withMessages([
+                    'mascota_id' => 'Ya tienes una solicitud pendiente o aprobada para esta mascota.',
+                ]);
             }
 
             $data = $request->all();
@@ -113,12 +112,13 @@ class SolicitudesController extends Controller
             // Redirige a la página del índice de solicitudes con un mensaje de éxito.
             return redirect()->route('solicitudes.index')->with('success', '¡Solicitud enviada con éxito!');
         } catch (\Exception $e) {
-            // Manejar errores generales
-            return response()->json([
-                'errors' => [
-                    'general' => ['Ocurrió un error al procesar tu solicitud. Por favor, intenta de nuevo.']
-                ]
-            ], 500);
+            if ($e instanceof ValidationException) {
+                throw $e;
+            }
+
+            return back()
+                ->withErrors(['general' => 'Ocurrió un error al procesar tu solicitud. Por favor, intenta de nuevo.'])
+                ->withInput();
         }
     }
 

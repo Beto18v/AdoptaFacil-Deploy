@@ -1,5 +1,6 @@
 import { useForm, usePage } from '@inertiajs/react';
 import { FormEventHandler, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 // Componentes de UI
 import InputError from '@/components/input-error';
@@ -132,7 +133,7 @@ export default function FormularioAdopcionModal({ mascota, show, onClose }: Form
     // Obtener el nombre de la mascota de forma flexible
     const nombreMascota = mascota.name || mascota.nombre || 'Mascota';
 
-    const { data, setData, post, processing, errors, reset, wasSuccessful } = useForm<AdopcionFormData>({
+    const { data, setData, post, processing, errors, reset, wasSuccessful, setError, clearErrors } = useForm<AdopcionFormData>({
         nombre_completo: auth?.user?.name || '',
         cedula: '',
         email: auth?.user?.email || '',
@@ -196,8 +197,58 @@ export default function FormularioAdopcionModal({ mascota, show, onClose }: Form
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
+
+        clearErrors('acepta_proceso_evaluacion', 'acepta_cuidado_responsable', 'acepta_contrato_adopcion');
+
+        const faltantes: string[] = [];
+
+        if (!data.acepta_proceso_evaluacion) {
+            const message = 'Debes aceptar el proceso de evaluación y entrevista.';
+            setError('acepta_proceso_evaluacion', message);
+            faltantes.push(message);
+        }
+
+        if (!data.acepta_cuidado_responsable) {
+            const message = 'Debes comprometerte con el cuidado responsable.';
+            setError('acepta_cuidado_responsable', message);
+            faltantes.push(message);
+        }
+
+        if (!data.acepta_contrato_adopcion) {
+            const message = 'Debes aceptar firmar el contrato de adopción.';
+            setError('acepta_contrato_adopcion', message);
+            faltantes.push(message);
+        }
+
+        if (faltantes.length > 0) {
+            faltantes.forEach((mensaje) => toast.error(mensaje));
+            return;
+        }
+
         post(route('solicitudes.adopcion.store'), {
             preserveScroll: true,
+            onSuccess: () => {
+                toast.success('Solicitud enviada correctamente.');
+            },
+            onError: (serverErrors) => {
+                const mascotaError = serverErrors.mascota_id;
+                const generalError = serverErrors.general;
+
+                const mascotaMensaje = Array.isArray(mascotaError) ? mascotaError[0] : mascotaError;
+                const generalMensaje = Array.isArray(generalError) ? generalError[0] : generalError;
+
+                if (mascotaMensaje) {
+                    toast.error(mascotaMensaje);
+                    return;
+                }
+
+                if (generalMensaje) {
+                    toast.error(generalMensaje);
+                    return;
+                }
+
+                toast.error('No se pudo enviar la solicitud. Verifica los campos e inténtalo de nuevo.');
+            },
         });
     };
 
@@ -243,26 +294,6 @@ export default function FormularioAdopcionModal({ mascota, show, onClose }: Form
                         </div>
 
                         <form onSubmit={submit} className="space-y-6">
-                            {/* Mostrar errores generales */}
-                            {errors.mascota_id && (
-                                <div className="rounded-md bg-red-50 p-4 dark:bg-red-900/20">
-                                    <div className="flex">
-                                        <div className="ml-3">
-                                            <h3 className="text-sm font-medium text-red-800 dark:text-red-200">Error en la solicitud</h3>
-                                            <div className="mt-2 text-sm text-red-700 dark:text-red-300">
-                                                <ul role="list" className="list-inside list-disc space-y-1">
-                                                    {Array.isArray(errors.mascota_id) ? (
-                                                        errors.mascota_id.map((error, index) => <li key={index}>{error}</li>)
-                                                    ) : (
-                                                        <li>{errors.mascota_id}</li>
-                                                    )}
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
                             {/* Información Personal */}
                             <FormSection title="📋 Información Personal">
                                 <div className="space-y-2">
