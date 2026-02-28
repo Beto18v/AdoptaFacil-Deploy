@@ -61,7 +61,7 @@ export function FavoritesProvider({
                     try {
                         const data = await response.json();
                         setFavoriteIds(data.favorite_ids || []);
-                    } catch (jsonError) {
+                    } catch {
                         setFavoriteIds([]);
                     }
                 } else {
@@ -70,7 +70,7 @@ export function FavoritesProvider({
             } else {
                 setFavoriteIds([]);
             }
-        } catch (error) {
+        } catch {
             setFavoriteIds([]);
         } finally {
             setIsLoading(false);
