@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import FormularioAdopcionModal from '@/components/ui/formulario-adopcion-modal';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { Heart, ShieldCheck } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface PetCardProps {
     id: number;
@@ -23,6 +23,7 @@ interface PetCardProps {
     };
     onImageClick?: () => void;
     onViewDetails?: () => void;
+    onFavoriteChange?: (petId: number, isFavorite: boolean) => void;
 }
 
 export default function PetCard({
@@ -39,9 +40,16 @@ export default function PetCard({
     user,
     onImageClick,
     onViewDetails,
+    onFavoriteChange,
 }: PetCardProps) {
     const [showAdoptionForm, setShowAdoptionForm] = useState(false);
+    const [localIsFavorite, setLocalIsFavorite] = useState(false);
     const { isFavorite, toggleFavorite, isLoading, isInitialized } = useFavorites();
+
+    useEffect(() => {
+        if (!isInitialized) return;
+        setLocalIsFavorite(isFavorite(id));
+    }, [id, isFavorite, isInitialized]);
 
     const handleFavoriteClick = async (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -52,10 +60,19 @@ export default function PetCard({
             return;
         }
 
-        await toggleFavorite(id);
-    };
+        const previousState = localIsFavorite;
+        const nextState = !previousState;
 
-    const isCurrentlyFavorite = isFavorite(id);
+        setLocalIsFavorite(nextState);
+        onFavoriteChange?.(id, nextState);
+
+        try {
+            await toggleFavorite(id);
+        } catch {
+            setLocalIsFavorite(previousState);
+            onFavoriteChange?.(id, previousState);
+        }
+    };
 
     // Función para obtener el color del badge según la especie
     const getSpeciesBadgeColor = (especie: string) => {
@@ -154,11 +171,11 @@ export default function PetCard({
                         className="absolute top-2 left-2 z-20 bg-white/80 backdrop-blur-sm hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800"
                         onClick={handleFavoriteClick}
                         disabled={isLoading || !isInitialized}
-                        title={isCurrentlyFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+                        title={localIsFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
                     >
                         <Heart
                             className={`h-5 w-5 transition-all duration-200 ${
-                                isCurrentlyFavorite ? 'scale-110 fill-red-500 text-red-500' : 'text-gray-600 hover:scale-105 hover:text-red-500'
+                                localIsFavorite ? 'scale-110 fill-red-500 text-red-500' : 'text-gray-600 hover:scale-105 hover:text-red-500'
                             } ${isLoading ? 'animate-pulse opacity-50' : ''}`}
                         />
                     </Button>

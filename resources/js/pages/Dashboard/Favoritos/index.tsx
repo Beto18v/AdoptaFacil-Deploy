@@ -7,7 +7,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { Calendar, Heart, MapPin, User } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -46,7 +46,18 @@ interface FavoritosProps {
 function FavoritePetsContent({ favoritos = [] }: FavoritosProps) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(0);
-    const { removeFromFavorites, isLoading } = useFavorites();
+    const [favoritePets, setFavoritePets] = useState<Mascota[]>(favoritos);
+    const { removeFromFavorites, isLoading, favoriteIds, isInitialized } = useFavorites();
+
+    useEffect(() => {
+        setFavoritePets(favoritos);
+    }, [favoritos]);
+
+    useEffect(() => {
+        if (!isInitialized) return;
+
+        setFavoritePets((prev) => prev.filter((pet) => favoriteIds.includes(pet.id)));
+    }, [favoriteIds, isInitialized]);
 
     const handlePetClick = (index: number) => {
         setSelectedIndex(index);
@@ -56,13 +67,11 @@ function FavoritePetsContent({ favoritos = [] }: FavoritosProps) {
     const handleRemoveFavorite = async (mascotaId: number, e: React.MouseEvent) => {
         e.stopPropagation();
         await removeFromFavorites(mascotaId);
-        // Recargar la página para actualizar la lista
-        window.location.reload();
     };
 
     // Convertir favoritos al formato esperado por el modal
     const modalItems = useMemo(() => {
-        return favoritos.map((mascota) => {
+        return favoritePets.map((mascota) => {
             // Construir array de imágenes
             const images: string[] = [];
 
@@ -101,7 +110,7 @@ function FavoritePetsContent({ favoritos = [] }: FavoritosProps) {
                 shelter: mascota.user.name,
             };
         });
-    }, [favoritos]);
+    }, [favoritePets]);
 
     return (
         <>
@@ -140,15 +149,15 @@ function FavoritePetsContent({ favoritos = [] }: FavoritosProps) {
                                 <div className="mx-auto mb-3 w-fit rounded-2xl bg-gradient-to-r from-pink-500 to-red-500 p-3 shadow-xl">
                                     <Heart className="h-6 w-6 fill-current text-white" />
                                 </div>
-                                <p className="text-2xl font-bold text-gray-800 dark:text-white">{favoritos.length}</p>
+                                <p className="text-2xl font-bold text-gray-800 dark:text-white">{favoritePets.length}</p>
                                 <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                                    {favoritos.length === 1 ? 'Mascota Favorita' : 'Mascotas Favoritas'}
+                                    {favoritePets.length === 1 ? 'Mascota Favorita' : 'Mascotas Favoritas'}
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    {favoritos.length > 0 ? (
+                    {favoritePets.length > 0 ? (
                         <div className="relative overflow-hidden rounded-3xl bg-white/95 p-8 shadow-2xl backdrop-blur-sm dark:bg-gray-800/95">
                             {/* Elementos decorativos */}
                             <div className="absolute -top-12 -right-12 h-32 w-32 rounded-full bg-gradient-to-br from-pink-500/10 to-purple-500/5 blur-2xl"></div>
@@ -160,7 +169,7 @@ function FavoritePetsContent({ favoritos = [] }: FavoritosProps) {
                                     <div>
                                         <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Galería de Favoritos</h2>
                                         <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                                            Explora {favoritos.length} {favoritos.length === 1 ? 'mascota guardada' : 'mascotas guardadas'}
+                                            Explora {favoritePets.length} {favoritePets.length === 1 ? 'mascota guardada' : 'mascotas guardadas'}
                                         </p>
                                     </div>
                                     <div className="rounded-2xl bg-gradient-to-r from-pink-500/20 to-red-500/20 p-3">
@@ -173,7 +182,7 @@ function FavoritePetsContent({ favoritos = [] }: FavoritosProps) {
                             </div>
 
                             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                                {favoritos.map((pet, index) => {
+                                {favoritePets.map((pet, index) => {
                                     const mainImage = pet.imagen
                                         ? `/storage/${pet.imagen}`
                                         : pet.images && pet.images.length > 0

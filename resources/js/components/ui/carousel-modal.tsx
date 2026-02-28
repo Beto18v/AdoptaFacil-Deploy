@@ -313,8 +313,7 @@ export default function CarouselModal({ isOpen, onClose, items, initialIndex }: 
                                             transition={{ duration: 0.3 }}
                                             src={currentDisplayImage}
                                             alt={title}
-                                            className="max-h-full max-w-full object-contain"
-                                            style={{ maxHeight: '85vh' }}
+                                            className="max-h-[85vh] max-w-full object-contain"
                                             onLoad={() => setImageLoading(false)}
                                         />
                                     </AnimatePresence>
