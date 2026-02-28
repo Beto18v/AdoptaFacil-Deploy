@@ -48,8 +48,8 @@ class GoogleController extends Controller
             $name = (string) ($googleUser->getName() ?: $email);
 
             [$user, $isNewUser] = DB::transaction(function () use ($googleId, $email, $name) {
-                $userByGoogleId = User::query()->where('google_id', $googleId)->first();
-                $userByEmail = User::query()->where('email', $email)->first();
+                $userByGoogleId = User::query()->withTrashed()->where('google_id', $googleId)->first();
+                $userByEmail = User::query()->withTrashed()->where('email', $email)->first();
 
                 if ($userByGoogleId && $userByEmail && $userByGoogleId->getKey() !== $userByEmail->getKey()) {
                     Log::warning('Google OAuth account conflict', [
@@ -75,6 +75,10 @@ class GoogleController extends Controller
                     ]);
                     $isNewUser = true;
                 } else {
+                    if (method_exists($user, 'restore') && $user->trashed()) {
+                        $user->restore();
+                    }
+
                     $updates = [];
 
                     if (!$user->google_id) {
