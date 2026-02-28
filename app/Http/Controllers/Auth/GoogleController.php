@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
 
@@ -42,24 +43,67 @@ class GoogleController extends Controller
 
             $googleUser = $driver->user();
 
-            $user = User::where('email', $googleUser->getEmail())->first();
+            $googleId = (string) $googleUser->getId();
+            $email = (string) $googleUser->getEmail();
+            $name = (string) ($googleUser->getName() ?: $email);
 
+            [$user, $isNewUser] = DB::transaction(function () use ($googleId, $email, $name) {
+                $userByGoogleId = User::query()->where('google_id', $googleId)->first();
+                $userByEmail = User::query()->where('email', $email)->first();
 
-            $isNewUser = false;
-            if (!$user) {
-                $user = User::create([
-                    'name' => $googleUser->getName(),
-                    'email' => $googleUser->getEmail(),
-                    'google_id' => $googleUser->getId(),
-                    'password' => bcrypt(uniqid()), // Random password since Google handles auth
-                    'email_verified_at' => now(),
-                ]);
-                $isNewUser = true;
-            } else {
-                // Update Google ID if not set
-                if (!$user->google_id) {
-                    $user->update(['google_id' => $googleUser->getId()]);
+                if ($userByGoogleId && $userByEmail && $userByGoogleId->getKey() !== $userByEmail->getKey()) {
+                    Log::warning('Google OAuth account conflict', [
+                        'google_id' => $googleId,
+                        'email' => $email,
+                        'user_by_google_id' => $userByGoogleId->getKey(),
+                        'user_by_email' => $userByEmail->getKey(),
+                    ]);
+
+                    return [null, false];
                 }
+
+                $user = $userByGoogleId ?: $userByEmail;
+                $isNewUser = false;
+
+                if (!$user) {
+                    $user = User::create([
+                        'name' => $name,
+                        'email' => $email,
+                        'google_id' => $googleId,
+                        'password' => bcrypt(uniqid()),
+                        'email_verified_at' => now(),
+                    ]);
+                    $isNewUser = true;
+                } else {
+                    $updates = [];
+
+                    if (!$user->google_id) {
+                        $updates['google_id'] = $googleId;
+                    }
+
+                    if ($userByGoogleId && $user->email !== $email) {
+                        $emailTaken = User::query()
+                            ->where('email', $email)
+                            ->whereKeyNot($user->getKey())
+                            ->exists();
+
+                        if (!$emailTaken) {
+                            $updates['email'] = $email;
+                        }
+                    }
+
+                    if (!empty($updates)) {
+                        $user->forceFill($updates)->save();
+                    }
+                }
+
+                return [$user, $isNewUser];
+            });
+
+            if (!$user) {
+                return redirect()->route('login')->withErrors([
+                    'google' => 'Tu cuenta de Google ya está vinculada a otro usuario. Contacta soporte si necesitas recuperar el acceso.',
+                ]);
             }
 
             // Enviar email de bienvenida solo si es nuevo usuario
