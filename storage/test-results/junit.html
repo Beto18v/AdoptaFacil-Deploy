@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>test-results</title>
+    <style type="text/css">/*! normalize.css v3.0.2 | MIT License | git.io/normalize */pre,textarea{overflow:auto}img,legend{border:0}h1,h2,h3{letter-spacing:-.1rem}html{font-family:sans-serif;-ms-text-size-adjust:100%;-webkit-text-size-adjust:100%}body{margin:0}article,aside,details,figcaption,figure,footer,header,hgroup,main,menu,nav,section,summary{display:block}audio,canvas,progress,video{display:inline-block;vertical-align:baseline}audio:not([controls]){display:none;height:0}[hidden],template{display:none}a{background-color:transparent;color:#1EAEDB}a:active,a:hover{outline:0}abbr[title]{border-bottom:1px dotted}b,optgroup,strong{font-weight:700}dfn{font-style:italic}h1{margin:.67em 0}mark{background:#ff0;color:#000}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sup{top:-.5em}sub{bottom:-.25em}svg:not(:root){overflow:hidden}figure{margin:1em 40px}hr{-moz-box-sizing:content-box;box-sizing:content-box;height:0}code,kbd,pre,samp{font-family:monospace,monospace;font-size:1em}button,input,optgroup,select,textarea{color:inherit;font:inherit;margin:0}body,h6{line-height:1.6}button{overflow:visible}button,select{text-transform:none}button,html input[type=button],input[type=reset],input[type=submit]{-webkit-appearance:button;cursor:pointer}button[disabled],html input[disabled]{cursor:default}button::-moz-focus-inner,input::-moz-focus-inner{border:0;padding:0}input{line-height:normal}input[type=checkbox],input[type=radio]{box-sizing:border-box;padding:0}input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{height:auto}input[type=search]{-moz-box-sizing:content-box;-webkit-box-sizing:content-box}input[type=search]::-webkit-search-cancel-button,input[type=search]::-webkit-search-decoration{-webkit-appearance:none}fieldset{border:1px solid silver;margin:0 2px}legend{padding:0}table{border-collapse:collapse;border-spacing:0}.container{position:relative;width:100%;max-width:960px;margin:0 auto;padding:0 20px;box-sizing:border-box}h1,h2,h3,h4,h5,h6,ol,p,ul{margin-top:0}.column,.columns{width:100%;float:left;box-sizing:border-box}@media (min-width:400px){.container{width:85%;padding:0}}html{font-size:62.5%}body{font-size:1.5em;font-weight:400;font-family:Raleway,HelveticaNeue,"Helvetica Neue",Helvetica,Arial,sans-serif;color:#222}h1,h2,h3,h4,h5,h6{margin-bottom:2rem;font-weight:300}h1{font-size:4rem;line-height:1.2}h2{font-size:3.6rem;line-height:1.25}h3{font-size:3rem;line-height:1.3}h4{font-size:2.4rem;line-height:1.35;letter-spacing:-.08rem}h5{font-size:1.8rem;line-height:1.5;letter-spacing:-.05rem}h6{font-size:1.5rem;letter-spacing:0}@media (min-width:550px){.container{width:80%}.column,.columns{margin-left:4%}.column:first-child,.columns:first-child{margin-left:0}.one.column,.one.columns{width:4.66666666667%}.two.columns{width:13.3333333333%}.three.columns{width:22%}.four.columns{width:30.6666666667%}.five.columns{width:39.3333333333%}.six.columns{width:48%}.seven.columns{width:56.6666666667%}.eight.columns{width:65.3333333333%}.nine.columns{width:74%}.ten.columns{width:82.6666666667%}.eleven.columns{width:91.3333333333%}.twelve.columns{width:100%;margin-left:0}.one-third.column{width:30.6666666667%}.two-thirds.column{width:65.3333333333%}.one-half.column{width:48%}.offset-by-one.column,.offset-by-one.columns{margin-left:8.66666666667%}.offset-by-two.column,.offset-by-two.columns{margin-left:17.3333333333%}.offset-by-three.column,.offset-by-three.columns{margin-left:26%}.offset-by-four.column,.offset-by-four.columns{margin-left:34.6666666667%}.offset-by-five.column,.offset-by-five.columns{margin-left:43.3333333333%}.offset-by-six.column,.offset-by-six.columns{margin-left:52%}.offset-by-seven.column,.offset-by-seven.columns{margin-left:60.6666666667%}.offset-by-eight.column,.offset-by-eight.columns{margin-left:69.3333333333%}.offset-by-nine.column,.offset-by-nine.columns{margin-left:78%}.offset-by-ten.column,.offset-by-ten.columns{margin-left:86.6666666667%}.offset-by-eleven.column,.offset-by-eleven.columns{margin-left:95.3333333333%}.offset-by-one-third.column,.offset-by-one-third.columns{margin-left:34.6666666667%}.offset-by-two-thirds.column,.offset-by-two-thirds.columns{margin-left:69.3333333333%}.offset-by-one-half.column,.offset-by-one-half.columns{margin-left:52%}h1{font-size:5rem}h2{font-size:4.2rem}h3{font-size:3.6rem}h4{font-size:3rem}h5{font-size:2.4rem}h6{font-size:1.5rem}}a:hover{color:#0FA0CE}.button,button,input[type=button],input[type=reset],input[type=submit]{display:inline-block;height:38px;padding:0 30px;color:#555;text-align:center;font-size:11px;font-weight:600;line-height:38px;letter-spacing:.1rem;text-transform:uppercase;text-decoration:none;white-space:nowrap;background-color:transparent;border-radius:4px;border:1px solid #bbb;cursor:pointer;box-sizing:border-box}.button:focus,.button:hover,button:focus,button:hover,input[type=button]:focus,input[type=button]:hover,input[type=reset]:focus,input[type=reset]:hover,input[type=submit]:focus,input[type=submit]:hover{color:#333;border-color:#888;outline:0}.button.button-primary,button.button-primary,input[type=button].button-primary,input[type=reset].button-primary,input[type=submit].button-primary{color:#FFF;background-color:#33C3F0;border-color:#33C3F0}.button.button-primary:focus,.button.button-primary:hover,button.button-primary:focus,button.button-primary:hover,input[type=button].button-primary:focus,input[type=button].button-primary:hover,input[type=reset].button-primary:focus,input[type=reset].button-primary:hover,input[type=submit].button-primary:focus,input[type=submit].button-primary:hover{color:#FFF;background-color:#1EAEDB;border-color:#1EAEDB}input[type=email],input[type=text],input[type=tel],input[type=url],input[type=password],input[type=number],input[type=search],select,textarea{height:38px;padding:6px 10px;background-color:#fff;border:1px solid #D1D1D1;border-radius:4px;box-shadow:none;box-sizing:border-box}input[type=email],input[type=text],input[type=tel],input[type=url],input[type=password],input[type=number],input[type=search],textarea{-webkit-appearance:none;-moz-appearance:none;appearance:none}textarea{min-height:65px;padding-top:6px;padding-bottom:6px}input[type=email]:focus,input[type=text]:focus,input[type=tel]:focus,input[type=url]:focus,input[type=password]:focus,input[type=number]:focus,input[type=search]:focus,select:focus,textarea:focus{border:1px solid #33C3F0;outline:0}label,legend{display:block;margin-bottom:.5rem;font-weight:600}fieldset{padding:0;border-width:0}input[type=checkbox],input[type=radio]{display:inline}label>.label-body{display:inline-block;margin-left:.5rem;font-weight:400}ul{list-style:circle inside}ol{list-style:decimal inside}ol,ul{padding-left:0}ol ol,ol ul,ul ol,ul ul{margin:1.5rem 0 1.5rem 3rem;font-size:90%}.button,button,li{margin-bottom:1rem}code{padding:.2rem .5rem;margin:0 .2rem;font-size:90%;white-space:nowrap;background:#F1F1F1;border:1px solid #E1E1E1;border-radius:4px}pre>code{display:block;padding:1rem 1.5rem;white-space:pre}td,th{padding:12px 15px;text-align:left;border-bottom:1px solid #E1E1E1}td:first-child,th:first-child{padding-left:0}td:last-child,th:last-child{padding-right:0}fieldset,input,select,textarea{margin-bottom:1.5rem}blockquote,dl,figure,form,ol,p,pre,table,ul{margin-bottom:2.5rem}.u-full-width{width:100%;box-sizing:border-box}.u-max-full-width{max-width:100%;box-sizing:border-box}.u-pull-right{float:right}.u-pull-left{float:left}hr{margin-top:3rem;margin-bottom:3.5rem;border-width:0;border-top:1px solid #E1E1E1}.container:after,.row:after,.u-cf{content:"";display:table;clear:both}</style>
+
+    <style type="text/css">.junit_info,h1{text-align:center}.suite--failure{color:#FFF;background-color:#FF1717;border-color:#FF1717}.suite--failure:focus,.suite--failure:hover{color:#FFF;background-color:#ED1515;border-color:#ED1515}.suite--passed{color:#FFF;background-color:#0CAB37;border-color:#0CAB37}.suite--passed:focus,.suite--passed:hover{color:#FFF;background-color:#0B9C32;border-color:#0B9C32}.test--error,.test--failure{color:#FFF;background-color:#E50000;border-color:#E50000}.test--error:focus,.test--error:hover,.test--failure:focus,.test--failure:hover{color:#FFF;background-color:#C00;border-color:#C00}.test--passed{color:#FFF;background-color:#0DBD3D;border-color:#0DBD3D}.test--passed:focus,.test--passed:hover{color:#FFF;background-color:#0BA635;border-color:#0BA635}.test--skipped{color:#FFF;background-color:#C3D6E3;border-color:#C3D6E3}.test--skipped:focus,.test--skipped:hover{color:#FFF;background-color:#BDCFDB;border-color:#BDCFDB}.properties__title{color:#FFF;background-color:#B6B4BA;border-color:#B6B4BA}.properties__title:focus,.properties__title:hover{color:#FFF;background-color:#A7A6AB;border-color:#A7A6AB}.option,.properties,.suite__properties,.test{width:96%;margin-left:2%;margin-right:2%;margin-bottom:10px}.options__cta,.properties__list,.test__message,.test__messages{margin-top:-10px;border:1px solid #bbb;border-radius:0 0 4px 4px;padding:10px}.properties__list td,.properties__list th{padding-left:10px}.properties__title,.test__name{margin-bottom:0;border-radius:4px 4px 0 0}.test__message--multiple{padding:5px;border-radius:4px;border:1px solid #bbb;margin-bottom:4px}.test--passed,.test--skipped{border-radius:4px}.suite__name{margin:0 0 5px;border-radius:4px 4px 0 0}.suite__contents{margin:-10px 0 5px;border-radius:0 0 4px 4px;border:1px solid #bbb;padding:10px 5px 5px}.flat{border-radius:4px 4px 0 0}.round{border-radius:4px}.label{margin-right:10px}.contracted,.hidden,.no_visible_tests,.not_in_search{display:none}.options_container{margin:0 .5em}.container__suites{margin:0 1em}.container__suites,.options{overflow:scroll}::-webkit-scrollbar{width:12px}::-webkit-scrollbar-thumb{border-radius:4px;-webkit-box-shadow:inset 30px 30px 30px #1EAEDB}.options_container__toggle{margin:0}.option__container,.options{border:1px solid #bbb;border-radius:0 0 4px 4px;padding:5px}.option{margin-bottom:1em}.option__title,.search button{margin-bottom:0}.search button{border-radius:4px 4px 0 0}.search input{margin-top:-1px;border-radius:0 0 4px 4px}.options__icon--colapsed{padding:0}</style>
+</head>
+
+<body>
+    <h1 class="u-full-width">test-results</h1>
+    <div class="junit_info"><button id="junit_info_suite_count" class="suite--count">
+    <span>suite:</span>
+    <span id="junit_info_suite_count_count">11</span><span>/11</span>
+</button>
+<button id="junit_info_suite_passed" class="suite--passed">
+    <span>passed:</span>
+    <span id="junit_info_suite_passed_count">11</span><span>/11</span>
+</button>
+</div>
+    <div class="junit_info">
+<button id="junit_info_test_count" class="test--count">
+    <span>test:</span>
+    <span id="junit_info_test_count_count">35</span><span>/35</span>
+</button>
+<button id="junit_info_test_passed" class="test--passed">
+    <span>passed:</span>
+    <span id="junit_info_test_passed_count">35</span><span>/35</span>
+</button>
+</div>
+    <div>
+        <div id="options_container" class="container__options column one"><svg style="display: none">
+    <symbol id="options__icon" width="36" height="38">
+        <rect x="0" y="8" rx="2" ry="2" width="25" height="5" style="fill:#fff"></rect>
+        <rect x="0" y="15" rx="2" ry="2" width="25" height="5" style="fill:#fff"></rect>
+        <rect x="0" y="22" rx="2" ry="2" width="25" height="5" style="fill:#fff"></rect>
+    </symbol>
+</svg>
+<button id="optionsCollapsed" title="advanced search" class="options_container button-primary options_container__toggle" onclick="showOptions()">
+    <svg width="25" height="38">
+        <use xlink:href="#options__icon"></use>
+    </svg>
+</button>
+<div id="optionsExpanded" class="options_container" style="display: none">
+    <button class="flat button-primary u-full-width options_container__toggle" onclick="hideOptions()">
+        <svg class="u-pull-left" width="36" height="38">
+            <use xlink:href="#options__icon"></use>
+        </svg>
+        <span>SEARCH</span></button>
+    <div id="options" class="options">
+        <div class="option">
+            <button class="option__title u-full-width button-primary flat" onclick="toggleContraction(this.parentElement)">SUITES</button>
+            <div class="option__container">
+                <button class="button-primary u-full-width" onclick="hidePassingSuites(this)">HIDE PASSING</button>
+                <button class="button-primary u-full-width" id="contractSuits" onclick="contractSuites(this)">EXPAND ALL</button>
+                <div class="search">
+                    <button class="u-full-width" disabled="disabled">SEARCH</button>
+                    <input class="u-full-width" type="text" oninput="searchSuites(this.value)" placeholder="suite names"/>
+                </div>
+            </div>
+        </div>
+        <div class="option">
+            <button class="option__title u-full-width button-primary flat" onclick="toggleContraction(this.parentElement)">TESTS</button>
+            <div class="option__container">
+                <button class="button-primary u-full-width" onclick="hidePassingTests(this)">HIDE PASSING</button>
+                <button class="button-primary u-full-width" onclick="hideTests(this)">HIDE ALL</button>
+                <button class="button-primary u-full-width" onclick="contractTests(this)">CONTRACT ALL</button>
+                <div class="search">
+                    <button class="u-full-width" disabled="disabled">SEARCH</button>
+                    <input class="u-full-width" type="text" oninput="searchTests(this.value)" placeholder="test names and messages"/>
+                </div>
+            </div>
+        </div>
+        <div class="option">
+            <button class="option__title u-full-width button-primary flat" onclick="toggleContraction(this.parentElement)">PROPERTIES</button>
+            <div class="option__container">
+                <button class="button-primary u-full-width" onclick="hideProperties(this)">HIDE ALL</button>
+                <button class="button-primary u-full-width" onclick="contractProperties(this)">CONTRACT ALL</button>
+                <div class="search">
+                    <button class="u-full-width" disabled="disabled">SEARCH</button>
+                    <input class="u-full-width" type="text" oninput="searchProperties(this.value)" placeholder="propety keys and values"/>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+        <div id="suites_container" class="u-pull-right columns eleven container__suites"><div class="suite" id="suite_LSw1d">
+    <button class="suite--passed u-full-width round" onclick="toggleContraction(this.parentElement)" onload="setContracted()">
+        <span class="suite__name u-pull-left">Tests.Unit.PoliciesTest</span>
+        <span class="label u-pull-right">file: tests\Unit\PoliciesTest.php</span>
+<span class="label u-pull-right">tests: 3</span>
+<span class="label u-pull-right">assertions: 36</span>
+<span class="label u-pull-right">errors: 0</span>
+<span class="label u-pull-right">failures: 0</span>
+<span class="label u-pull-right">skipped: 0</span>
+<span class="label u-pull-right">time: 0.954291</span>
+    </button>
+    <div class="suite__contents">
+        
+        <div class="test" id="test_JwAXi">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">post policy rules are enforced</span>
+        <span class="label u-pull-right">file: tests\Unit\PoliciesTest.php::post policy rules are enforced</span>
+<span class="label u-pull-right">class: Tests\Unit\PoliciesTest</span>
+<span class="label u-pull-right">assertions: 14</span>
+<span class="label u-pull-right">time: 0.892791</span>
+    </button>
+    
+</div>
+
+<div class="test" id="test_4ydoz">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">product policy rules are enforced</span>
+        <span class="label u-pull-right">file: tests\Unit\PoliciesTest.php::product policy rules are enforced</span>
+<span class="label u-pull-right">class: Tests\Unit\PoliciesTest</span>
+<span class="label u-pull-right">assertions: 13</span>
+<span class="label u-pull-right">time: 0.030454</span>
+    </button>
+    
+</div>
+
+<div class="test" id="test_MJiVA">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">mascota policy rules are enforced</span>
+        <span class="label u-pull-right">file: tests\Unit\PoliciesTest.php::mascota policy rules are enforced</span>
+<span class="label u-pull-right">class: Tests\Unit\PoliciesTest</span>
+<span class="label u-pull-right">assertions: 9</span>
+<span class="label u-pull-right">time: 0.031045</span>
+    </button>
+    
+</div>
+
+    </div>
+</div>
+
+<div class="suite" id="suite_mJ9uO">
+    <button class="suite--passed u-full-width round" onclick="toggleContraction(this.parentElement)" onload="setContracted()">
+        <span class="suite__name u-pull-left">Tests.Unit.SecureFileUploadTest</span>
+        <span class="label u-pull-right">file: tests\Unit\SecureFileUploadTest.php</span>
+<span class="label u-pull-right">tests: 3</span>
+<span class="label u-pull-right">assertions: 10</span>
+<span class="label u-pull-right">errors: 0</span>
+<span class="label u-pull-right">failures: 0</span>
+<span class="label u-pull-right">skipped: 0</span>
+<span class="label u-pull-right">time: 0.204268</span>
+    </button>
+    <div class="suite__contents">
+        
+        <div class="test" id="test_pt8c1">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">secure upload stores a valid image with randomized filename</span>
+        <span class="label u-pull-right">file: tests\Unit\SecureFileUploadTest.php::secure upload stores a valid image with randomized filename</span>
+<span class="label u-pull-right">class: Tests\Unit\SecureFileUploadTest</span>
+<span class="label u-pull-right">assertions: 5</span>
+<span class="label u-pull-right">time: 0.125519</span>
+    </button>
+    
+</div>
+
+<div class="test" id="test_TBONY">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">secure upload rejects invalid image content (mime says image but content is not)</span>
+        <span class="label u-pull-right">file: tests\Unit\SecureFileUploadTest.php::secure upload rejects invalid image content (mime says image but content is not)</span>
+<span class="label u-pull-right">class: Tests\Unit\SecureFileUploadTest</span>
+<span class="label u-pull-right">assertions: 2</span>
+<span class="label u-pull-right">time: 0.045355</span>
+    </button>
+    
+</div>
+
+<div class="test" id="test_vCq90">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">secure upload stores non-image files without image validation</span>
+        <span class="label u-pull-right">file: tests\Unit\SecureFileUploadTest.php::secure upload stores non-image files without image validation</span>
+<span class="label u-pull-right">class: Tests\Unit\SecureFileUploadTest</span>
+<span class="label u-pull-right">assertions: 3</span>
+<span class="label u-pull-right">time: 0.033394</span>
+    </button>
+    
+</div>
+
+    </div>
+</div>
+
+<div class="suite" id="suite_tfYpx">
+    <button class="suite--passed u-full-width round" onclick="toggleContraction(this.parentElement)" onload="setContracted()">
+        <span class="suite__name u-pull-left">Tests.Feature.Auth.AuthenticationTest</span>
+        <span class="label u-pull-right">file: tests\Feature\Auth\AuthenticationTest.php</span>
+<span class="label u-pull-right">tests: 4</span>
+<span class="label u-pull-right">assertions: 8</span>
+<span class="label u-pull-right">errors: 0</span>
+<span class="label u-pull-right">failures: 0</span>
+<span class="label u-pull-right">skipped: 0</span>
+<span class="label u-pull-right">time: 0.505246</span>
+    </button>
+    <div class="suite__contents">
+        
+        <div class="test" id="test_TUdWV">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">login screen can be rendered</span>
+        <span class="label u-pull-right">file: tests\Feature\Auth\AuthenticationTest.php::login screen can be rendered</span>
+<span class="label u-pull-right">class: Tests\Feature\Auth\AuthenticationTest</span>
+<span class="label u-pull-right">assertions: 1</span>
+<span class="label u-pull-right">time: 0.130327</span>
+    </button>
+    
+</div>
+
+<div class="test" id="test_NXE1J">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">users can authenticate using the login screen</span>
+        <span class="label u-pull-right">file: tests\Feature\Auth\AuthenticationTest.php::users can authenticate using the login screen</span>
+<span class="label u-pull-right">class: Tests\Feature\Auth\AuthenticationTest</span>
+<span class="label u-pull-right">assertions: 3</span>
+<span class="label u-pull-right">time: 0.087676</span>
+    </button>
+    
+</div>
+
+<div class="test" id="test_KEDs9">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">users can not authenticate with invalid password</span>
+        <span class="label u-pull-right">file: tests\Feature\Auth\AuthenticationTest.php::users can not authenticate with invalid password</span>
+<span class="label u-pull-right">class: Tests\Feature\Auth\AuthenticationTest</span>
+<span class="label u-pull-right">assertions: 1</span>
+<span class="label u-pull-right">time: 0.253642</span>
+    </button>
+    
+</div>
+
+<div class="test" id="test_qujRg">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">users can logout</span>
+        <span class="label u-pull-right">file: tests\Feature\Auth\AuthenticationTest.php::users can logout</span>
+<span class="label u-pull-right">class: Tests\Feature\Auth\AuthenticationTest</span>
+<span class="label u-pull-right">assertions: 3</span>
+<span class="label u-pull-right">time: 0.033602</span>
+    </button>
+    
+</div>
+
+    </div>
+</div>
+
+<div class="suite" id="suite_83nzx">
+    <button class="suite--passed u-full-width round" onclick="toggleContraction(this.parentElement)" onload="setContracted()">
+        <span class="suite__name u-pull-left">Tests.Feature.Auth.EmailVerificationTest</span>
+        <span class="label u-pull-right">file: tests\Feature\Auth\EmailVerificationTest.php</span>
+<span class="label u-pull-right">tests: 3</span>
+<span class="label u-pull-right">assertions: 6</span>
+<span class="label u-pull-right">errors: 0</span>
+<span class="label u-pull-right">failures: 0</span>
+<span class="label u-pull-right">skipped: 0</span>
+<span class="label u-pull-right">time: 0.134374</span>
+    </button>
+    <div class="suite__contents">
+        
+        <div class="test" id="test_kIJix">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">email verification screen can be rendered</span>
+        <span class="label u-pull-right">file: tests\Feature\Auth\EmailVerificationTest.php::email verification screen can be rendered</span>
+<span class="label u-pull-right">class: Tests\Feature\Auth\EmailVerificationTest</span>
+<span class="label u-pull-right">assertions: 1</span>
+<span class="label u-pull-right">time: 0.042227</span>
+    </button>
+    
+</div>
+
+<div class="test" id="test_cWMoH">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">email can be verified</span>
+        <span class="label u-pull-right">file: tests\Feature\Auth\EmailVerificationTest.php::email can be verified</span>
+<span class="label u-pull-right">class: Tests\Feature\Auth\EmailVerificationTest</span>
+<span class="label u-pull-right">assertions: 4</span>
+<span class="label u-pull-right">time: 0.046305</span>
+    </button>
+    
+</div>
+
+<div class="test" id="test_pFZN9">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">email is not verified with invalid hash</span>
+        <span class="label u-pull-right">file: tests\Feature\Auth\EmailVerificationTest.php::email is not verified with invalid hash</span>
+<span class="label u-pull-right">class: Tests\Feature\Auth\EmailVerificationTest</span>
+<span class="label u-pull-right">assertions: 1</span>
+<span class="label u-pull-right">time: 0.045842</span>
+    </button>
+    
+</div>
+
+    </div>
+</div>
+
+<div class="suite" id="suite_D1bPf">
+    <button class="suite--passed u-full-width round" onclick="toggleContraction(this.parentElement)" onload="setContracted()">
+        <span class="suite__name u-pull-left">Tests.Feature.Auth.PasswordConfirmationTest</span>
+        <span class="label u-pull-right">file: tests\Feature\Auth\PasswordConfirmationTest.php</span>
+<span class="label u-pull-right">tests: 3</span>
+<span class="label u-pull-right">assertions: 4</span>
+<span class="label u-pull-right">errors: 0</span>
+<span class="label u-pull-right">failures: 0</span>
+<span class="label u-pull-right">skipped: 0</span>
+<span class="label u-pull-right">time: 0.321677</span>
+    </button>
+    <div class="suite__contents">
+        
+        <div class="test" id="test_RpF0L">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">confirm password screen can be rendered</span>
+        <span class="label u-pull-right">file: tests\Feature\Auth\PasswordConfirmationTest.php::confirm password screen can be rendered</span>
+<span class="label u-pull-right">class: Tests\Feature\Auth\PasswordConfirmationTest</span>
+<span class="label u-pull-right">assertions: 1</span>
+<span class="label u-pull-right">time: 0.039311</span>
+    </button>
+    
+</div>
+
+<div class="test" id="test_VdXF2">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">password can be confirmed</span>
+        <span class="label u-pull-right">file: tests\Feature\Auth\PasswordConfirmationTest.php::password can be confirmed</span>
+<span class="label u-pull-right">class: Tests\Feature\Auth\PasswordConfirmationTest</span>
+<span class="label u-pull-right">assertions: 2</span>
+<span class="label u-pull-right">time: 0.033213</span>
+    </button>
+    
+</div>
+
+<div class="test" id="test_JEKh4">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">password is not confirmed with invalid password</span>
+        <span class="label u-pull-right">file: tests\Feature\Auth\PasswordConfirmationTest.php::password is not confirmed with invalid password</span>
+<span class="label u-pull-right">class: Tests\Feature\Auth\PasswordConfirmationTest</span>
+<span class="label u-pull-right">assertions: 1</span>
+<span class="label u-pull-right">time: 0.249153</span>
+    </button>
+    
+</div>
+
+    </div>
+</div>
+
+<div class="suite" id="suite_14Kbm">
+    <button class="suite--passed u-full-width round" onclick="toggleContraction(this.parentElement)" onload="setContracted()">
+        <span class="suite__name u-pull-left">Tests.Feature.Auth.PasswordResetTest</span>
+        <span class="label u-pull-right">file: tests\Feature\Auth\PasswordResetTest.php</span>
+<span class="label u-pull-right">tests: 6</span>
+<span class="label u-pull-right">assertions: 13</span>
+<span class="label u-pull-right">errors: 0</span>
+<span class="label u-pull-right">failures: 0</span>
+<span class="label u-pull-right">skipped: 0</span>
+<span class="label u-pull-right">time: 2.387892</span>
+    </button>
+    <div class="suite__contents">
+        
+        <div class="test" id="test_X6bL0">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">reset password link screen can be rendered</span>
+        <span class="label u-pull-right">file: tests\Feature\Auth\PasswordResetTest.php::reset password link screen can be rendered</span>
+<span class="label u-pull-right">class: Tests\Feature\Auth\PasswordResetTest</span>
+<span class="label u-pull-right">assertions: 1</span>
+<span class="label u-pull-right">time: 0.057937</span>
+    </button>
+    
+</div>
+
+<div class="test" id="test_nmhU6">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">reset password link can be requested</span>
+        <span class="label u-pull-right">file: tests\Feature\Auth\PasswordResetTest.php::reset password link can be requested</span>
+<span class="label u-pull-right">class: Tests\Feature\Auth\PasswordResetTest</span>
+<span class="label u-pull-right">assertions: 1</span>
+<span class="label u-pull-right">time: 0.247395</span>
+    </button>
+    
+</div>
+
+<div class="test" id="test_Qy0wX">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">reset password screen can be rendered</span>
+        <span class="label u-pull-right">file: tests\Feature\Auth\PasswordResetTest.php::reset password screen can be rendered</span>
+<span class="label u-pull-right">class: Tests\Feature\Auth\PasswordResetTest</span>
+<span class="label u-pull-right">assertions: 2</span>
+<span class="label u-pull-right">time: 0.243884</span>
+    </button>
+    
+</div>
+
+<div class="test" id="test_5XnjC">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">password can be reset with valid token</span>
+        <span class="label u-pull-right">file: tests\Feature\Auth\PasswordResetTest.php::password can be reset with valid token</span>
+<span class="label u-pull-right">class: Tests\Feature\Auth\PasswordResetTest</span>
+<span class="label u-pull-right">assertions: 4</span>
+<span class="label u-pull-right">time: 0.257208</span>
+    </button>
+    
+</div>
+
+<div class="test" id="test_wfqVC">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">forgot password returns same response for existing and non-existing email</span>
+        <span class="label u-pull-right">file: tests\Feature\Auth\PasswordResetTest.php::forgot password returns same response for existing and non-existing email</span>
+<span class="label u-pull-right">class: Tests\Feature\Auth\PasswordResetTest</span>
+<span class="label u-pull-right">assertions: 4</span>
+<span class="label u-pull-right">time: 0.467175</span>
+    </button>
+    
+</div>
+
+<div class="test" id="test_XldzO">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">password reset link request is throttled</span>
+        <span class="label u-pull-right">file: tests\Feature\Auth\PasswordResetTest.php::password reset link request is throttled</span>
+<span class="label u-pull-right">class: Tests\Feature\Auth\PasswordResetTest</span>
+<span class="label u-pull-right">assertions: 1</span>
+<span class="label u-pull-right">time: 1.114293</span>
+    </button>
+    
+</div>
+
+    </div>
+</div>
+
+<div class="suite" id="suite_v0nVG">
+    <button class="suite--passed u-full-width round" onclick="toggleContraction(this.parentElement)" onload="setContracted()">
+        <span class="suite__name u-pull-left">Tests.Feature.Auth.RegistrationTest</span>
+        <span class="label u-pull-right">file: tests\Feature\Auth\RegistrationTest.php</span>
+<span class="label u-pull-right">tests: 2</span>
+<span class="label u-pull-right">assertions: 5</span>
+<span class="label u-pull-right">errors: 0</span>
+<span class="label u-pull-right">failures: 0</span>
+<span class="label u-pull-right">skipped: 0</span>
+<span class="label u-pull-right">time: 0.073327</span>
+    </button>
+    <div class="suite__contents">
+        
+        <div class="test" id="test_zv8Rd">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">registration screen can be rendered</span>
+        <span class="label u-pull-right">file: tests\Feature\Auth\RegistrationTest.php::registration screen can be rendered</span>
+<span class="label u-pull-right">class: Tests\Feature\Auth\RegistrationTest</span>
+<span class="label u-pull-right">assertions: 1</span>
+<span class="label u-pull-right">time: 0.038971</span>
+    </button>
+    
+</div>
+
+<div class="test" id="test_wbd8V">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">new users can register</span>
+        <span class="label u-pull-right">file: tests\Feature\Auth\RegistrationTest.php::new users can register</span>
+<span class="label u-pull-right">class: Tests\Feature\Auth\RegistrationTest</span>
+<span class="label u-pull-right">assertions: 4</span>
+<span class="label u-pull-right">time: 0.034356</span>
+    </button>
+    
+</div>
+
+    </div>
+</div>
+
+<div class="suite" id="suite_97VTY">
+    <button class="suite--passed u-full-width round" onclick="toggleContraction(this.parentElement)" onload="setContracted()">
+        <span class="suite__name u-pull-left">Tests.Feature.DashboardTest</span>
+        <span class="label u-pull-right">file: tests\Feature\DashboardTest.php</span>
+<span class="label u-pull-right">tests: 2</span>
+<span class="label u-pull-right">assertions: 3</span>
+<span class="label u-pull-right">errors: 0</span>
+<span class="label u-pull-right">failures: 0</span>
+<span class="label u-pull-right">skipped: 0</span>
+<span class="label u-pull-right">time: 0.077328</span>
+    </button>
+    <div class="suite__contents">
+        
+        <div class="test" id="test_u5Vh3">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">guests are redirected to the login page</span>
+        <span class="label u-pull-right">file: tests\Feature\DashboardTest.php::guests are redirected to the login page</span>
+<span class="label u-pull-right">class: Tests\Feature\DashboardTest</span>
+<span class="label u-pull-right">assertions: 2</span>
+<span class="label u-pull-right">time: 0.035421</span>
+    </button>
+    
+</div>
+
+<div class="test" id="test_UlSW3">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">authenticated users can visit the dashboard</span>
+        <span class="label u-pull-right">file: tests\Feature\DashboardTest.php::authenticated users can visit the dashboard</span>
+<span class="label u-pull-right">class: Tests\Feature\DashboardTest</span>
+<span class="label u-pull-right">assertions: 1</span>
+<span class="label u-pull-right">time: 0.041907</span>
+    </button>
+    
+</div>
+
+    </div>
+</div>
+
+<div class="suite" id="suite_61cFM">
+    <button class="suite--passed u-full-width round" onclick="toggleContraction(this.parentElement)" onload="setContracted()">
+        <span class="suite__name u-pull-left">Tests.Feature.EstadisticasTest</span>
+        <span class="label u-pull-right">file: tests\Feature\EstadisticasTest.php</span>
+<span class="label u-pull-right">tests: 2</span>
+<span class="label u-pull-right">assertions: 10</span>
+<span class="label u-pull-right">errors: 0</span>
+<span class="label u-pull-right">failures: 0</span>
+<span class="label u-pull-right">skipped: 0</span>
+<span class="label u-pull-right">time: 0.247295</span>
+    </button>
+    <div class="suite__contents">
+        
+        <div class="test" id="test_DRBON">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">generar-pdf returns 200 and pdf type</span>
+        <span class="label u-pull-right">file: tests\Feature\EstadisticasTest.php::generar-pdf returns 200 and pdf type</span>
+<span class="label u-pull-right">class: Tests\Feature\EstadisticasTest</span>
+<span class="label u-pull-right">assertions: 5</span>
+<span class="label u-pull-right">time: 0.181661</span>
+    </button>
+    
+</div>
+
+<div class="test" id="test_UAEvP">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">generar-pdf-rechazos returns 200 and pdf type</span>
+        <span class="label u-pull-right">file: tests\Feature\EstadisticasTest.php::generar-pdf-rechazos returns 200 and pdf type</span>
+<span class="label u-pull-right">class: Tests\Feature\EstadisticasTest</span>
+<span class="label u-pull-right">assertions: 5</span>
+<span class="label u-pull-right">time: 0.065634</span>
+    </button>
+    
+</div>
+
+    </div>
+</div>
+
+<div class="suite" id="suite_90Dmh">
+    <button class="suite--passed u-full-width round" onclick="toggleContraction(this.parentElement)" onload="setContracted()">
+        <span class="suite__name u-pull-left">Tests.Feature.Settings.PasswordUpdateTest</span>
+        <span class="label u-pull-right">file: tests\Feature\Settings\PasswordUpdateTest.php</span>
+<span class="label u-pull-right">tests: 2</span>
+<span class="label u-pull-right">assertions: 8</span>
+<span class="label u-pull-right">errors: 0</span>
+<span class="label u-pull-right">failures: 0</span>
+<span class="label u-pull-right">skipped: 0</span>
+<span class="label u-pull-right">time: 0.074427</span>
+    </button>
+    <div class="suite__contents">
+        
+        <div class="test" id="test_ZLgUp">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">password can be updated</span>
+        <span class="label u-pull-right">file: tests\Feature\Settings\PasswordUpdateTest.php::password can be updated</span>
+<span class="label u-pull-right">class: Tests\Feature\Settings\PasswordUpdateTest</span>
+<span class="label u-pull-right">assertions: 4</span>
+<span class="label u-pull-right">time: 0.038701</span>
+    </button>
+    
+</div>
+
+<div class="test" id="test_F5X6y">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">correct password must be provided to update password</span>
+        <span class="label u-pull-right">file: tests\Feature\Settings\PasswordUpdateTest.php::correct password must be provided to update password</span>
+<span class="label u-pull-right">class: Tests\Feature\Settings\PasswordUpdateTest</span>
+<span class="label u-pull-right">assertions: 4</span>
+<span class="label u-pull-right">time: 0.035726</span>
+    </button>
+    
+</div>
+
+    </div>
+</div>
+
+<div class="suite" id="suite_MlOzt">
+    <button class="suite--passed u-full-width round" onclick="toggleContraction(this.parentElement)" onload="setContracted()">
+        <span class="suite__name u-pull-left">Tests.Feature.Settings.ProfileUpdateTest</span>
+        <span class="label u-pull-right">file: tests\Feature\Settings\ProfileUpdateTest.php</span>
+<span class="label u-pull-right">tests: 5</span>
+<span class="label u-pull-right">assertions: 21</span>
+<span class="label u-pull-right">errors: 0</span>
+<span class="label u-pull-right">failures: 0</span>
+<span class="label u-pull-right">skipped: 0</span>
+<span class="label u-pull-right">time: 0.331061</span>
+    </button>
+    <div class="suite__contents">
+        
+        <div class="test" id="test_Nt9pI">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">profile page is displayed</span>
+        <span class="label u-pull-right">file: tests\Feature\Settings\ProfileUpdateTest.php::profile page is displayed</span>
+<span class="label u-pull-right">class: Tests\Feature\Settings\ProfileUpdateTest</span>
+<span class="label u-pull-right">assertions: 1</span>
+<span class="label u-pull-right">time: 0.045000</span>
+    </button>
+    
+</div>
+
+<div class="test" id="test_4jzqx">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">profile information can be updated</span>
+        <span class="label u-pull-right">file: tests\Feature\Settings\ProfileUpdateTest.php::profile information can be updated</span>
+<span class="label u-pull-right">class: Tests\Feature\Settings\ProfileUpdateTest</span>
+<span class="label u-pull-right">assertions: 6</span>
+<span class="label u-pull-right">time: 0.042068</span>
+    </button>
+    
+</div>
+
+<div class="test" id="test_zAQxZ">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">email verification status is unchanged when the email address is unchanged</span>
+        <span class="label u-pull-right">file: tests\Feature\Settings\ProfileUpdateTest.php::email verification status is unchanged when the email address is unchanged</span>
+<span class="label u-pull-right">class: Tests\Feature\Settings\ProfileUpdateTest</span>
+<span class="label u-pull-right">assertions: 4</span>
+<span class="label u-pull-right">time: 0.076678</span>
+    </button>
+    
+</div>
+
+<div class="test" id="test_hhS9M">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">user can delete their account</span>
+        <span class="label u-pull-right">file: tests\Feature\Settings\ProfileUpdateTest.php::user can delete their account</span>
+<span class="label u-pull-right">class: Tests\Feature\Settings\ProfileUpdateTest</span>
+<span class="label u-pull-right">assertions: 5</span>
+<span class="label u-pull-right">time: 0.076779</span>
+    </button>
+    
+</div>
+
+<div class="test" id="test_qXSBF">
+    <button class="test__name test--passed u-full-width" onclick="toggleContraction(this.parentElement)">
+        <span class="u-pull-left">correct password must be provided to delete account</span>
+        <span class="label u-pull-right">file: tests\Feature\Settings\ProfileUpdateTest.php::correct password must be provided to delete account</span>
+<span class="label u-pull-right">class: Tests\Feature\Settings\ProfileUpdateTest</span>
+<span class="label u-pull-right">assertions: 5</span>
+<span class="label u-pull-right">time: 0.090537</span>
+    </button>
+    
+</div>
+
+    </div>
+</div>
+</div>
+    </div>
+    <script type="text/javascript">function addClass(e,s){e&&(e.className=e.className+" "+s)}function removeClass(e,s){e&&(e.className=e.className.replace(" "+s,""))}function replaceClass(e,s,t){e&&(e.className=e.className.replace(s,t))}function toggleContraction(e){var s=e.children[0],t=e.children[1];if(t){var a=t.className.indexOf("contracted")!==-1;a?(replaceClass(s,"round","flat"),removeClass(t,"contracted")):(replaceClass(s,"flat","round"),addClass(t,"contracted"))}}function createVisibleInfo(e){var s={suites:{},tests:{}};return Object.keys(e).filter(function(e){var s=document.getElementById(e);return null!==s}).forEach(function(e,t){var a=document.getElementById(e);if(a.className.indexOf("not_in_search")===-1&&a.className.indexOf("hidden")===-1&&a.className.indexOf("no_visible_tests")===-1){var i=a.children[0].className.split(" ")[0].split("--")[1];s.suites.hasOwnProperty(i)||(s.suites[i]=0),s.suites[i]+=1;var n=a.children[1].children;Object.keys(n).filter(function(e){return null!==document.getElementById(e)&&n[e].className.indexOf("test")!==-1&&n[e].className.indexOf("not_in_search")===-1&&n[e].className.indexOf("hidden")===-1}).forEach(function(e){var t=document.getElementById(e),a=t.children[0].className.split(" ")[1].split("--")[1];s.tests.hasOwnProperty(a)||(s.tests[a]=0),s.tests[a]+=1})}}),s}function updateInfo(){var e=document.getElementsByClassName("suite"),s=createVisibleInfo(e),t=document.getElementsByClassName("suite hidden"),a=document.getElementsByClassName("suite not_in_search"),i=document.getElementsByClassName("suite no_visible_tests");s.suites.count=e.length-t.length-a.length-i.length;document.getElementsByClassName("test"),document.getElementsByClassName("test hidden"),document.getElementsByClassName("test not_in_search");s.tests.count=0,Object.keys(s.tests).filter(function(e){return"count"!==e}).forEach(function(e){s.tests.count+=s.tests[e]}),Object.keys(junit_info.suites).forEach(function(e){s.suites.hasOwnProperty(e)?document.getElementById("junit_info_suite_"+e+"_count").innerHTML=s.suites[e]:document.getElementById("junit_info_suite_"+e+"_count").innerHTML=0}),Object.keys(junit_info.tests).forEach(function(e){s.tests.hasOwnProperty(e)?document.getElementById("junit_info_test_"+e+"_count").innerHTML=s.tests[e]:document.getElementById("junit_info_test_"+e+"_count").innerHTML=0})}function contractSuites(e){var s=e.innerHTML.indexOf("EXPAND")!==-1;e.innerHTML=s?"CONTRACT ALL":"EXPAND ALL",suites.forEach(function(e){var t=document.getElementById(e.id),a=t.children[0],i=t.children[1];s?(replaceClass(a,"round","flat"),removeClass(i,"contracted")):(replaceClass(a,"flat","round"),addClass(i,"contracted"))})}function setContracted(e){"contracted"===e?document.getElementById("contractSuits").innerHTML="EXPAND ALL":document.getElementById("contractSuits").innerHTML="CONTRACT ALL",console.log("Log this"+e)}function hidePassingSuites(e){var s=e.innerHTML.indexOf("SHOW")!==-1;e.innerHTML=s?"HIDE PASSING":"SHOW PASSING",suites.forEach(function(e){var t=document.getElementById(e.id);s?removeClass(t,"hidden"):"passed"===e.type&&addClass(t,"hidden")}),updateInfo()}function globToRegex(e){var s,t,a,i,n=0,r=e.length||0;for(t="^";n<r;)if(a=e[n],n+=1,"*"===a)t+=".*";else if("?"===a)t+=".";else if("["===a){for(s=n,s<r&&"!"===e[s]&&(s+=1),s<r&&"]"===e[s]&&(s+=1);s<r&&"]"!==e[s];)s+=1;s>=r?t+="\\[":(i=e.slice(n,s).replace("\\","\\\\"),n=s+1,"!"===i[0]?i="^"+i.slice(1):"^"===i[0]&&(i="\\"+i),t=t+"["+i+"]")}else t+=escape(a);return t+"$"}function match(e,s){if(s=s.toUpperCase(),e=e.toUpperCase(),s.indexOf(e)!==-1)return!0;try{if(null!==s.match(new RegExp(e)))return!0}catch(t){}try{if(null!==s.match(new RegExp(globToRegex(e))))return!0}catch(t){}for(var a=-1,i=0;i<e.length;i++){var n=e[i];if(" "!=n&&(a=s.indexOf(n,a+1),a==-1))return!1}return!0}function searchSuites(e){e=e.toUpperCase(),suites.forEach(function(s){var t=document.getElementById(s.id);if(""===e)return void removeClass(t,"not_in_search");var a=match(e,s.name),i=t.className.indexOf("not_in_search")===-1;!a&&i&&addClass(t,"not_in_search"),a&&removeClass(t,"not_in_search")}),updateInfo()}function forEachTest(e){suites.forEach(function(s){s.testCases.forEach(e)})}function contractTests(e){var s=e.innerHTML.indexOf("EXPAND")!==-1;e.innerHTML=s?"CONTRACT ALL":"EXPAND ALL",forEachTest(function(e){var t=document.getElementById(e.id),a=t.children[0],i=t.children[1];s?(replaceClass(a,"round","flat"),removeClass(i,"contracted")):(replaceClass(a,"flat","round"),addClass(i,"contracted"))})}function hideTests(e){var s=e.innerHTML.indexOf("SHOW")!==-1;e.innerHTML=s?"HIDE ALL":"SHOW ALL",forEachTest(function(e){var t=document.getElementById(e.id);s?removeClass(t,"hidden"):addClass(t,"hidden")}),updateInfo()}function hidePassingTests(e){var s=e.innerHTML.indexOf("SHOW")!==-1;e.innerHTML=s?"HIDE PASSING":"SHOW PASSING",forEachTest(function(e){var t=document.getElementById(e.id);s?removeClass(t,"hidden"):"passed"===e.type&&addClass(t,"hidden")}),updateInfo()}function searchTests(e){e=e.toUpperCase(),forEachTest(function(s){var t=document.getElementById(s.id);if(""===e)return removeClass(t,"not_in_search"),void suites.forEach(function(e){var s=document.getElementById(e.id);s.className=s.className.replace(" no_visible_tests","")});var a=match(e,s.name);s.messages.values.forEach(function(s){var t=match(e,s.value);t&&(a=!0)});var i=t.className.indexOf("not_in_search")===-1;!a&&i&&addClass(t,"not_in_search"),a&&removeClass(t,"not_in_search")}),suites.forEach(function(e){var s=document.getElementById(e.id),t=s.children[1].children,a=Object.keys(t).filter(function(e){return null!==document.getElementById(e)&&(t[e].className.indexOf("not_in_search")!==-1||t[e].className.indexOf("properties")!==-1)}).length;t.length===a?s.className=s.className+" no_visible_tests":s.className=s.className.replace(" no_visible_tests","")}),updateInfo()}function contractProperties(e){var s=e.innerHTML.indexOf("EXPAND")!==-1;e.innerHTML=s?"CONTRACT ALL":"EXPAND ALL",suites.filter(function(e){return e.properties.values.length>0}).forEach(function(e){var t=document.getElementById(e.properties.id),a=t.children[0],i=t.children[1];s?(replaceClass(a,"round","flat"),removeClass(i,"contracted")):(replaceClass(a,"flat","round"),addClass(i,"contracted"))})}function hideProperties(e){var s=e.innerHTML.indexOf("SHOW")!==-1;e.innerHTML=s?"HIDE ALL":"SHOW ALL",suites.filter(function(e){return e.properties.values.length>0}).forEach(function(e){var t=document.getElementById(e.properties.id);s?removeClass(t,"hidden"):addClass(t,"hidden")})}function searchProperties(e){e=e.toUpperCase(),suites.forEach(function(s){s.properties.values.forEach(function(s){var t=document.getElementById(s.id);if(""===e)return void removeClass(t,"not_in_search");var a=match(e,s.name)||match(e,s.value),i=t.className.indexOf("not_in_search")===-1;!a&&i&&addClass(t,"not_in_search"),a&&removeClass(t,"not_in_search")})})}function showOptions(){var e=document.getElementById("optionsCollapsed");e.style.display="none";var s=document.getElementById("optionsExpanded");s.style.display="block";var t=document.getElementById("options_container");t.className=t.className.replace("one","one-third");var a=document.getElementById("suites_container");a.className=a.className.replace("eleven ","two-thirds "),a.className=a.className.replace("columns ","column ")}function hideOptions(){var e=document.getElementById("optionsCollapsed");e.style.display="block";var s=document.getElementById("optionsExpanded");s.style.display="none";var t=document.getElementById("options_container");t.className=t.className.replace("one-third","one");var a=document.getElementById("suites_container");a.className=a.className.replace("two-thirds ","eleven "),a.className=a.className.replace("column ","columns ")}var junit_info={suites:{count:11,passed:11},tests:{count:35,passed:35}},suites=[{name:"Tests.Unit.PoliciesTest",type:"passed",file:"tests\\Unit\\PoliciesTest.php",tests:"3",assertions:"36",errors:"0",failures:"0",skipped:"0",time:"0.954291",testCases:[{name:"post policy rules are enforced",messages:{values:[],id:"messages_qP8xT"},type:"passed",file:"tests\\Unit\\PoliciesTest.php::post policy rules are enforced","class":"Tests\\Unit\\PoliciesTest",classname:"Tests.Unit.PoliciesTest",assertions:"14",time:"0.892791",id:"test_JwAXi"},{name:"product policy rules are enforced",messages:{values:[],id:"messages_g3PVy"},type:"passed",file:"tests\\Unit\\PoliciesTest.php::product policy rules are enforced","class":"Tests\\Unit\\PoliciesTest",classname:"Tests.Unit.PoliciesTest",assertions:"13",time:"0.030454",id:"test_4ydoz"},{name:"mascota policy rules are enforced",messages:{values:[],id:"messages_Gibmi"},type:"passed",file:"tests\\Unit\\PoliciesTest.php::mascota policy rules are enforced","class":"Tests\\Unit\\PoliciesTest",classname:"Tests.Unit.PoliciesTest",assertions:"9",time:"0.031045",id:"test_MJiVA"}],properties:{values:[],id:"properties_IBrhj"},id:"suite_LSw1d",contracted:""},{name:"Tests.Unit.SecureFileUploadTest",type:"passed",file:"tests\\Unit\\SecureFileUploadTest.php",tests:"3",assertions:"10",errors:"0",failures:"0",skipped:"0",time:"0.204268",testCases:[{name:"secure upload stores a valid image with randomized filename",messages:{values:[],id:"messages_AVCwc"},type:"passed",file:"tests\\Unit\\SecureFileUploadTest.php::secure upload stores a valid image with randomized filename","class":"Tests\\Unit\\SecureFileUploadTest",classname:"Tests.Unit.SecureFileUploadTest",assertions:"5",time:"0.125519",id:"test_pt8c1"},{name:"secure upload rejects invalid image content (mime says image but content is not)",messages:{values:[],id:"messages_ZDi2V"},type:"passed",file:"tests\\Unit\\SecureFileUploadTest.php::secure upload rejects invalid image content (mime says image but content is not)","class":"Tests\\Unit\\SecureFileUploadTest",classname:"Tests.Unit.SecureFileUploadTest",assertions:"2",time:"0.045355",id:"test_TBONY"},{name:"secure upload stores non-image files without image validation",messages:{values:[],id:"messages_HnkkV"},type:"passed",file:"tests\\Unit\\SecureFileUploadTest.php::secure upload stores non-image files without image validation","class":"Tests\\Unit\\SecureFileUploadTest",classname:"Tests.Unit.SecureFileUploadTest",assertions:"3",time:"0.033394",id:"test_vCq90"}],properties:{values:[],id:"properties_EhdrS"},id:"suite_mJ9uO",contracted:""},{name:"Tests.Feature.Auth.AuthenticationTest",type:"passed",file:"tests\\Feature\\Auth\\AuthenticationTest.php",tests:"4",assertions:"8",errors:"0",failures:"0",skipped:"0",time:"0.505246",testCases:[{name:"login screen can be rendered",messages:{values:[],id:"messages_jzQue"},type:"passed",file:"tests\\Feature\\Auth\\AuthenticationTest.php::login screen can be rendered","class":"Tests\\Feature\\Auth\\AuthenticationTest",classname:"Tests.Feature.Auth.AuthenticationTest",assertions:"1",time:"0.130327",id:"test_TUdWV"},{name:"users can authenticate using the login screen",messages:{values:[],id:"messages_G0lta"},type:"passed",file:"tests\\Feature\\Auth\\AuthenticationTest.php::users can authenticate using the login screen","class":"Tests\\Feature\\Auth\\AuthenticationTest",classname:"Tests.Feature.Auth.AuthenticationTest",assertions:"3",time:"0.087676",id:"test_NXE1J"},{name:"users can not authenticate with invalid password",messages:{values:[],id:"messages_RqcWq"},type:"passed",file:"tests\\Feature\\Auth\\AuthenticationTest.php::users can not authenticate with invalid password","class":"Tests\\Feature\\Auth\\AuthenticationTest",classname:"Tests.Feature.Auth.AuthenticationTest",assertions:"1",time:"0.253642",id:"test_KEDs9"},{name:"users can logout",messages:{values:[],id:"messages_op6pa"},type:"passed",file:"tests\\Feature\\Auth\\AuthenticationTest.php::users can logout","class":"Tests\\Feature\\Auth\\AuthenticationTest",classname:"Tests.Feature.Auth.AuthenticationTest",assertions:"3",time:"0.033602",id:"test_qujRg"}],properties:{values:[],id:"properties_ViA88"},id:"suite_tfYpx",contracted:""},{name:"Tests.Feature.Auth.EmailVerificationTest",type:"passed",file:"tests\\Feature\\Auth\\EmailVerificationTest.php",tests:"3",assertions:"6",errors:"0",failures:"0",skipped:"0",time:"0.134374",testCases:[{name:"email verification screen can be rendered",messages:{values:[],id:"messages_sGunO"},type:"passed",file:"tests\\Feature\\Auth\\EmailVerificationTest.php::email verification screen can be rendered","class":"Tests\\Feature\\Auth\\EmailVerificationTest",classname:"Tests.Feature.Auth.EmailVerificationTest",assertions:"1",time:"0.042227",id:"test_kIJix"},{name:"email can be verified",messages:{values:[],id:"messages_XHWR0"},type:"passed",file:"tests\\Feature\\Auth\\EmailVerificationTest.php::email can be verified","class":"Tests\\Feature\\Auth\\EmailVerificationTest",classname:"Tests.Feature.Auth.EmailVerificationTest",assertions:"4",time:"0.046305",id:"test_cWMoH"},{name:"email is not verified with invalid hash",messages:{values:[],id:"messages_Tr0g7"},type:"passed",file:"tests\\Feature\\Auth\\EmailVerificationTest.php::email is not verified with invalid hash","class":"Tests\\Feature\\Auth\\EmailVerificationTest",classname:"Tests.Feature.Auth.EmailVerificationTest",assertions:"1",time:"0.045842",id:"test_pFZN9"}],properties:{values:[],id:"properties_rBS4m"},id:"suite_83nzx",contracted:""},{name:"Tests.Feature.Auth.PasswordConfirmationTest",type:"passed",file:"tests\\Feature\\Auth\\PasswordConfirmationTest.php",tests:"3",assertions:"4",errors:"0",failures:"0",skipped:"0",time:"0.321677",testCases:[{name:"confirm password screen can be rendered",messages:{values:[],id:"messages_LjipM"},type:"passed",file:"tests\\Feature\\Auth\\PasswordConfirmationTest.php::confirm password screen can be rendered","class":"Tests\\Feature\\Auth\\PasswordConfirmationTest",classname:"Tests.Feature.Auth.PasswordConfirmationTest",assertions:"1",time:"0.039311",id:"test_RpF0L"},{name:"password can be confirmed",messages:{values:[],id:"messages_oaSLu"},type:"passed",file:"tests\\Feature\\Auth\\PasswordConfirmationTest.php::password can be confirmed","class":"Tests\\Feature\\Auth\\PasswordConfirmationTest",classname:"Tests.Feature.Auth.PasswordConfirmationTest",assertions:"2",time:"0.033213",id:"test_VdXF2"},{name:"password is not confirmed with invalid password",messages:{values:[],id:"messages_4IeP3"},type:"passed",file:"tests\\Feature\\Auth\\PasswordConfirmationTest.php::password is not confirmed with invalid password","class":"Tests\\Feature\\Auth\\PasswordConfirmationTest",classname:"Tests.Feature.Auth.PasswordConfirmationTest",assertions:"1",time:"0.249153",id:"test_JEKh4"}],properties:{values:[],id:"properties_3SDoz"},id:"suite_D1bPf",contracted:""},{name:"Tests.Feature.Auth.PasswordResetTest",type:"passed",file:"tests\\Feature\\Auth\\PasswordResetTest.php",tests:"6",assertions:"13",errors:"0",failures:"0",skipped:"0",time:"2.387892",testCases:[{name:"reset password link screen can be rendered",messages:{values:[],id:"messages_P1Yna"},type:"passed",file:"tests\\Feature\\Auth\\PasswordResetTest.php::reset password link screen can be rendered","class":"Tests\\Feature\\Auth\\PasswordResetTest",classname:"Tests.Feature.Auth.PasswordResetTest",assertions:"1",time:"0.057937",id:"test_X6bL0"},{name:"reset password link can be requested",messages:{values:[],id:"messages_3LFL1"},type:"passed",file:"tests\\Feature\\Auth\\PasswordResetTest.php::reset password link can be requested","class":"Tests\\Feature\\Auth\\PasswordResetTest",classname:"Tests.Feature.Auth.PasswordResetTest",assertions:"1",time:"0.247395",id:"test_nmhU6"},{name:"reset password screen can be rendered",messages:{values:[],id:"messages_31Phy"},type:"passed",file:"tests\\Feature\\Auth\\PasswordResetTest.php::reset password screen can be rendered","class":"Tests\\Feature\\Auth\\PasswordResetTest",classname:"Tests.Feature.Auth.PasswordResetTest",assertions:"2",time:"0.243884",id:"test_Qy0wX"},{name:"password can be reset with valid token",messages:{values:[],id:"messages_tPny8"},type:"passed",file:"tests\\Feature\\Auth\\PasswordResetTest.php::password can be reset with valid token","class":"Tests\\Feature\\Auth\\PasswordResetTest",classname:"Tests.Feature.Auth.PasswordResetTest",assertions:"4",time:"0.257208",id:"test_5XnjC"},{name:"forgot password returns same response for existing and non-existing email",messages:{values:[],id:"messages_RO0Rh"},type:"passed",file:"tests\\Feature\\Auth\\PasswordResetTest.php::forgot password returns same response for existing and non-existing email","class":"Tests\\Feature\\Auth\\PasswordResetTest",classname:"Tests.Feature.Auth.PasswordResetTest",assertions:"4",time:"0.467175",id:"test_wfqVC"},{name:"password reset link request is throttled",messages:{values:[],id:"messages_yJ8Xs"},type:"passed",file:"tests\\Feature\\Auth\\PasswordResetTest.php::password reset link request is throttled","class":"Tests\\Feature\\Auth\\PasswordResetTest",classname:"Tests.Feature.Auth.PasswordResetTest",assertions:"1",time:"1.114293",id:"test_XldzO"}],properties:{values:[],id:"properties_Ylc5W"},id:"suite_14Kbm",contracted:""},{name:"Tests.Feature.Auth.RegistrationTest",type:"passed",file:"tests\\Feature\\Auth\\RegistrationTest.php",tests:"2",assertions:"5",errors:"0",failures:"0",skipped:"0",time:"0.073327",testCases:[{name:"registration screen can be rendered",messages:{values:[],id:"messages_TnMJs"},type:"passed",file:"tests\\Feature\\Auth\\RegistrationTest.php::registration screen can be rendered","class":"Tests\\Feature\\Auth\\RegistrationTest",classname:"Tests.Feature.Auth.RegistrationTest",assertions:"1",time:"0.038971",id:"test_zv8Rd"},{name:"new users can register",messages:{values:[],id:"messages_0kMeu"},type:"passed",file:"tests\\Feature\\Auth\\RegistrationTest.php::new users can register","class":"Tests\\Feature\\Auth\\RegistrationTest",classname:"Tests.Feature.Auth.RegistrationTest",assertions:"4",time:"0.034356",id:"test_wbd8V"}],properties:{values:[],id:"properties_rIKjK"},id:"suite_v0nVG",contracted:""},{name:"Tests.Feature.DashboardTest",type:"passed",file:"tests\\Feature\\DashboardTest.php",tests:"2",assertions:"3",errors:"0",failures:"0",skipped:"0",time:"0.077328",testCases:[{name:"guests are redirected to the login page",messages:{values:[],id:"messages_Brdma"},type:"passed",file:"tests\\Feature\\DashboardTest.php::guests are redirected to the login page","class":"Tests\\Feature\\DashboardTest",classname:"Tests.Feature.DashboardTest",assertions:"2",time:"0.035421",id:"test_u5Vh3"},{name:"authenticated users can visit the dashboard",messages:{values:[],id:"messages_hCCyw"},type:"passed",file:"tests\\Feature\\DashboardTest.php::authenticated users can visit the dashboard","class":"Tests\\Feature\\DashboardTest",classname:"Tests.Feature.DashboardTest",assertions:"1",time:"0.041907",id:"test_UlSW3"}],properties:{values:[],id:"properties_CQooB"},id:"suite_97VTY",contracted:""},{name:"Tests.Feature.EstadisticasTest",type:"passed",file:"tests\\Feature\\EstadisticasTest.php",tests:"2",assertions:"10",errors:"0",failures:"0",skipped:"0",time:"0.247295",testCases:[{name:"generar-pdf returns 200 and pdf type",messages:{values:[],id:"messages_2UV5D"},type:"passed",file:"tests\\Feature\\EstadisticasTest.php::generar-pdf returns 200 and pdf type","class":"Tests\\Feature\\EstadisticasTest",classname:"Tests.Feature.EstadisticasTest",assertions:"5",time:"0.181661",id:"test_DRBON"},{name:"generar-pdf-rechazos returns 200 and pdf type",messages:{values:[],id:"messages_wtYHo"},type:"passed",file:"tests\\Feature\\EstadisticasTest.php::generar-pdf-rechazos returns 200 and pdf type","class":"Tests\\Feature\\EstadisticasTest",classname:"Tests.Feature.EstadisticasTest",assertions:"5",time:"0.065634",id:"test_UAEvP"}],properties:{values:[],id:"properties_8oQsV"},id:"suite_61cFM",contracted:""},{name:"Tests.Feature.Settings.PasswordUpdateTest",type:"passed",file:"tests\\Feature\\Settings\\PasswordUpdateTest.php",tests:"2",assertions:"8",errors:"0",failures:"0",skipped:"0",time:"0.074427",testCases:[{name:"password can be updated",messages:{values:[],id:"messages_0Q0UD"},type:"passed",file:"tests\\Feature\\Settings\\PasswordUpdateTest.php::password can be updated","class":"Tests\\Feature\\Settings\\PasswordUpdateTest",classname:"Tests.Feature.Settings.PasswordUpdateTest",assertions:"4",time:"0.038701",id:"test_ZLgUp"},{name:"correct password must be provided to update password",messages:{values:[],id:"messages_AYhl3"},type:"passed",file:"tests\\Feature\\Settings\\PasswordUpdateTest.php::correct password must be provided to update password","class":"Tests\\Feature\\Settings\\PasswordUpdateTest",classname:"Tests.Feature.Settings.PasswordUpdateTest",assertions:"4",time:"0.035726",id:"test_F5X6y"}],properties:{values:[],id:"properties_ZiXYA"},id:"suite_90Dmh",contracted:""},{name:"Tests.Feature.Settings.ProfileUpdateTest",type:"passed",file:"tests\\Feature\\Settings\\ProfileUpdateTest.php",tests:"5",assertions:"21",errors:"0",failures:"0",skipped:"0",time:"0.331061",testCases:[{name:"profile page is displayed",messages:{values:[],id:"messages_tBgUp"},type:"passed",file:"tests\\Feature\\Settings\\ProfileUpdateTest.php::profile page is displayed","class":"Tests\\Feature\\Settings\\ProfileUpdateTest",classname:"Tests.Feature.Settings.ProfileUpdateTest",assertions:"1",time:"0.045000",id:"test_Nt9pI"},{name:"profile information can be updated",messages:{values:[],id:"messages_LTcX9"},type:"passed",file:"tests\\Feature\\Settings\\ProfileUpdateTest.php::profile information can be updated","class":"Tests\\Feature\\Settings\\ProfileUpdateTest",classname:"Tests.Feature.Settings.ProfileUpdateTest",assertions:"6",time:"0.042068",id:"test_4jzqx"},{name:"email verification status is unchanged when the email address is unchanged",messages:{values:[],id:"messages_IPHF6"},type:"passed",file:"tests\\Feature\\Settings\\ProfileUpdateTest.php::email verification status is unchanged when the email address is unchanged","class":"Tests\\Feature\\Settings\\ProfileUpdateTest",classname:"Tests.Feature.Settings.ProfileUpdateTest",assertions:"4",time:"0.076678",id:"test_zAQxZ"},{name:"user can delete their account",messages:{values:[],id:"messages_GwEiN"},type:"passed",file:"tests\\Feature\\Settings\\ProfileUpdateTest.php::user can delete their account","class":"Tests\\Feature\\Settings\\ProfileUpdateTest",classname:"Tests.Feature.Settings.ProfileUpdateTest",assertions:"5",time:"0.076779",id:"test_hhS9M"},{name:"correct password must be provided to delete account",messages:{values:[],id:"messages_8peGB"},type:"passed",file:"tests\\Feature\\Settings\\ProfileUpdateTest.php::correct password must be provided to delete account","class":"Tests\\Feature\\Settings\\ProfileUpdateTest",classname:"Tests.Feature.Settings.ProfileUpdateTest",assertions:"5",time:"0.090537",id:"test_qXSBF"}],properties:{values:[],id:"properties_kO4Zs"},id:"suite_MlOzt",contracted:""}],height=window.innerHeight||document.documentElement.clientHeight||document.getElementsByTagName("body")[0].clientHeight;document.getElementById("suites_container").style.height=height+"px",document.getElementById("options").style.height=height-76+"px",window.onresize=function(e){var s=window.innerHeight||document.documentElement.clientHeight||document.getElementsByTagName("body")[0].clientHeight;document.getElementById("suites_container").style.height=s+"px",document.getElementById("options").style.height=s-76+"px"};</script>
+</body>
+
+</html>
