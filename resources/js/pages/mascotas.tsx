@@ -36,7 +36,7 @@ import { ThemeSwitcher } from '@/components/theme-switcher';
 import CarouselModal from '@/components/ui/carousel-modal';
 import { useNotifications } from '@/components/ui/notification';
 import { FavoritesProvider } from '@/contexts/FavoritesContext';
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
 
 // ACTUALIZADO: Asegúrate de que tu prop 'mascotas' incluya ciudad y sexo.
@@ -68,13 +68,36 @@ interface MascotasProps {
 }
 
 export default function Mascotas({ mascotas = [] }: MascotasProps) {
+    const { url } = usePage();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const { addNotification, NotificationContainer } = useNotifications();
 
-    const getEspecieFromUrl = () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get('especie') || 'all';
+    const normalizeEspecieLabel = (value: string) => {
+        const normalized = (value || '').trim().toLowerCase();
+
+        if (normalized === 'perro' || normalized === 'perros') {
+            return 'Perros';
+        }
+
+        if (normalized === 'gato' || normalized === 'gatos') {
+            return 'Gatos';
+        }
+
+        if (normalized === '') {
+            return '';
+        }
+
+        return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+    };
+
+    const getEspecieFromUrl = (inertiaUrl: string) => {
+        if (typeof window === 'undefined') {
+            return 'all';
+        }
+
+        const parsed = new URL(inertiaUrl, window.location.origin);
+        return parsed.searchParams.get('especie') || 'all';
     };
 
     // ACTUALIZADO: Mapeamos también 'sexo' y 'ciudad' e imágenes múltiples.
@@ -108,12 +131,7 @@ export default function Mascotas({ mascotas = [] }: MascotasProps) {
                 id: mascota.id,
                 type: 'pet' as const,
                 name: mascota.nombre,
-                especie:
-                    mascota.especie === 'perro'
-                        ? 'Perros'
-                        : mascota.especie === 'gato'
-                          ? 'Gatos'
-                          : mascota.especie.charAt(0).toUpperCase() + mascota.especie.slice(1).toLowerCase(),
+                especie: normalizeEspecieLabel(mascota.especie),
                 raza: mascota.raza,
                 edad: mascota.edad,
                 sexo: mascota.sexo, // <-- AÑADIDO
@@ -137,17 +155,16 @@ export default function Mascotas({ mascotas = [] }: MascotasProps) {
     });
 
     useEffect(() => {
-        const especieFromUrl = getEspecieFromUrl();
-        if (especieFromUrl !== 'all') {
-            const normalizedEspecie =
-                especieFromUrl === 'perro' || especieFromUrl === 'perros'
-                    ? 'Perros'
-                    : especieFromUrl === 'gato' || especieFromUrl === 'gatos'
-                      ? 'Gatos'
-                      : especieFromUrl.charAt(0).toUpperCase() + especieFromUrl.slice(1).toLowerCase();
-            setFilters((prev) => ({ ...prev, selectedEspecie: normalizedEspecie }));
+        const especieFromUrl = getEspecieFromUrl(url);
+        if (especieFromUrl === 'all') {
+            setFilters((prev) => (prev.selectedEspecie === 'all' ? prev : { ...prev, selectedEspecie: 'all' }));
+            return;
         }
-    }, []);
+
+        const normalizedEspecie = normalizeEspecieLabel(especieFromUrl);
+
+        setFilters((prev) => ({ ...prev, selectedEspecie: normalizedEspecie }));
+    }, [url]);
 
     const handleFilterChange = (key: string, value: string | number | boolean) => {
         setFilters((prev) => ({ ...prev, [key]: value }));

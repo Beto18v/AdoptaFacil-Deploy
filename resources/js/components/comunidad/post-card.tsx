@@ -163,7 +163,7 @@ export default function PostCard({ post, user, onDelete, onLikeUpdate, onComment
                             title={isAdminDelete ? 'Eliminar como administrador' : 'Eliminar mi publicación'}
                         >
                             <Trash2 className="h-4 w-4" />
-                            {isAdminDelete && <span className="ml-1 text-xs">Admin</span>}
+                            {isAdminDelete && <span className="ml-1 text-xs"></span>}
                         </Button>
                     )}
                 </div>
