@@ -2,7 +2,6 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\DescripcionMascotaController;
 use App\Http\Controllers\ShelterController;
 
 /*
@@ -18,12 +17,6 @@ use App\Http\Controllers\ShelterController;
 
 Route::middleware('auth')->get('/user', function (Request $request) {
     return $request->user();
-});
-
-// Rutas para el servicio de descripciones de mascotas
-Route::prefix('descripciones')->group(function () {
-    Route::post('/generar', [DescripcionMascotaController::class, 'generarDescripcion']);
-    Route::get('/verificar-servicio', [DescripcionMascotaController::class, 'verificarServicio']);
 });
 
 // Rutas API removidas - las donaciones se manejan en routes/web.php

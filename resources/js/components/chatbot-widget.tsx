@@ -15,6 +15,12 @@ const ChatbotWidget: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
+    const chatbotBaseUrl = import.meta.env.VITE_CHATBOT_URL as string | undefined;
+    const chatbotUrl =
+        chatbotBaseUrl && chatbotBaseUrl.trim().length > 0
+            ? chatbotBaseUrl.trim().replace(/\/$/, '')
+            : 'https://adopta-chatbot-a3d0fremcabnf2h6.eastus-01.azurewebsites.net';
+
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
@@ -26,7 +32,7 @@ const ChatbotWidget: React.FC = () => {
     const sendMessageToService = async (message: string): Promise<string> => {
         try {
             // Llamada al servicio de chatbot
-            const response = await fetch('http://127.0.0.1:8001/chat/', {
+            const response = await fetch(`${chatbotUrl}/chat/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
