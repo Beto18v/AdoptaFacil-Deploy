@@ -52,6 +52,7 @@ class SolicitudesController extends Controller
             $solicitudes = Solicitud::with(['user', 'mascota' => function ($q) {
                 $q->select('id', 'nombre', 'imagen', 'user_id', 'especie', 'raza');
             }])
+                ->whereHas('user')
                 ->whereIn('mascota_id', $mascotaIds)
                 ->orderByDesc('id')
                 ->get();
@@ -60,6 +61,7 @@ class SolicitudesController extends Controller
             $solicitudes = Solicitud::with(['user', 'mascota' => function ($q) {
                 $q->select('id', 'nombre', 'imagen', 'user_id', 'especie', 'raza');
             }])
+                ->whereHas('user')
                 ->where('user_id', $user->id)
                 ->orderByDesc('id')
                 ->get();

@@ -44,7 +44,9 @@ class MapaController extends Controller
         $especie = $request->query('especie'); // null, 'perro', 'gato', etc.
 
         // Obtener refugios con coordenadas exactas y sus mascotas
-        $sheltersWithCoordinates = Shelter::with(['user.mascotas'])
+        $sheltersWithCoordinates = Shelter::query()
+            ->visible()
+            ->with(['user.mascotas'])
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')
             ->get();
@@ -52,7 +54,7 @@ class MapaController extends Controller
         // Mostrar cada refugio como un punto individual
         $locationsData = $sheltersWithCoordinates->map(function ($shelter) use ($especie) {
             // Filtrar mascotas por especie si se solicita
-            $mascotas = $shelter->user->mascotas;
+            $mascotas = $shelter->user?->mascotas ?? collect();
             if ($especie) {
                 $mascotas = $mascotas->where('especie', strtolower($especie));
             }
@@ -72,14 +74,16 @@ class MapaController extends Controller
 
         // Fallback: Si no hay refugios con coordenadas, usar el método anterior
         if ($locationsData->isEmpty()) {
-            $mascotasPorCiudad = Shelter::with(['user.mascotas'])
+            $mascotasPorCiudad = Shelter::query()
+                ->visible()
+                ->with(['user.mascotas'])
                 ->whereNotNull('city')
                 ->get()
                 ->groupBy('city')
                 ->map(function ($shelters, $city) use ($especie) {
                     $mascotas = collect();
                     foreach ($shelters as $shelter) {
-                        $shelterMascotas = $shelter->user->mascotas;
+                        $shelterMascotas = $shelter->user?->mascotas ?? collect();
                         if ($especie) {
                             $shelterMascotas = $shelterMascotas->where('especie', strtolower($especie));
                         }

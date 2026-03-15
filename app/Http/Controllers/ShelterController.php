@@ -38,7 +38,9 @@ class ShelterController extends Controller
     public function index()
     {
         // Obtenemos los refugios, contamos sus donaciones y los ordenamos
-        $shelters = Shelter::with('user')
+        $shelters = Shelter::query()
+            ->visible()
+            ->with('user')
             ->withCount('donations') // Crea la columna 'donations_count'
             ->orderBy('donations_count', 'desc') // Ordena de mayor a menor
             ->get();
@@ -95,10 +97,14 @@ class ShelterController extends Controller
      */
     public function topShelters()
     {
-        $shelters = Shelter::select('shelters.*')
-            ->selectRaw('COUNT(mascotas.id) as mascotas_count')
-            ->leftJoin('mascotas', 'shelters.user_id', '=', 'mascotas.user_id')
-            ->groupBy('shelters.id')
+        $shelters = Shelter::query()
+            ->visible()
+            ->select('shelters.*')
+            ->selectSub(function ($query) {
+                $query->from('mascotas')
+                    ->selectRaw('COUNT(*)')
+                    ->whereColumn('mascotas.user_id', 'shelters.user_id');
+            }, 'mascotas_count')
             ->orderBy('mascotas_count', 'desc')
             ->limit(5)
             ->with('user')
@@ -107,7 +113,7 @@ class ShelterController extends Controller
                 return [
                     'id' => $shelter->id,
                     'name' => $shelter->name,
-                    'avatarUrl' => $shelter->user->avatar ? asset('storage/' . $shelter->user->avatar) : '',
+                    'avatarUrl' => $shelter->user?->avatar ? asset('storage/' . $shelter->user->avatar) : '',
                     'mascotas' => $shelter->mascotas_count,
                     'link' => route('refugios'),
                 ];

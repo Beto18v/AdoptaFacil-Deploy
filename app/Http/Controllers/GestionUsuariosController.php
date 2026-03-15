@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\UserDeletionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -111,13 +112,13 @@ class GestionUsuariosController extends Controller
         return redirect()->back()->with('success', 'Usuario actualizado exitosamente');
     }
 
-    public function destroy(User $user)
+    public function destroy(User $user, UserDeletionService $userDeletionService)
     {
         if (auth()->user()->role !== 'admin') {
             abort(403, 'Acceso denegado');
         }
 
-        $user->delete();
+        $userDeletionService->delete($user);
 
         return redirect()->back()->with('success', 'Usuario eliminado exitosamente');
     }

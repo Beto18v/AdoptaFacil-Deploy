@@ -48,7 +48,12 @@ class ProductController extends Controller
      */
     public function indexPublic()
     {
-        $productos = Product::with('user')->orderBy('created_at', 'desc')->get()->map(function ($producto) {
+        $productos = Product::query()
+            ->whereHas('user')
+            ->with('user')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($producto) {
             return (object) [
                 'id' => $producto->id,
                 'nombre' => $producto->nombre,        // Usar accessor
@@ -57,7 +62,8 @@ class ProductController extends Controller
                 'imagen' => $producto->imagen,
                 'user' => $producto->user,
             ];
-        });
+            });
+
         return Inertia::render('productos', ['productos' => $productos]);
     }
 
@@ -77,7 +83,9 @@ class ProductController extends Controller
         // Si es aliado, solo mostrar sus propios productos y mascotas
         if ($user && $user->role === 'aliado') {
             // Productos del aliado autenticado (ordenados por fecha de creación descendente)
-            $productos = Product::with('user')
+            $productos = Product::query()
+                ->whereHas('user')
+                ->with('user')
                 ->where('user_id', $user->id)
                 ->orderBy('created_at', 'desc')
                 ->get()
@@ -97,7 +105,9 @@ class ProductController extends Controller
                 });
 
             // Mascotas del aliado autenticado (ordenadas por fecha de creación descendente)
-            $mascotas = Mascota::with('user')
+            $mascotas = Mascota::query()
+                ->whereHas('user')
+                ->with('user')
                 ->where('user_id', $user->id)
                 ->orderBy('created_at', 'desc')
                 ->get()
@@ -116,7 +126,12 @@ class ProductController extends Controller
                 });
         } else {
             // Para clientes y otros roles, mostrar todos los productos y mascotas (ordenados por fecha)
-            $productos = Product::with('user')->orderBy('created_at', 'desc')->get()->map(function ($producto) {
+            $productos = Product::query()
+                ->whereHas('user')
+                ->with('user')
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($producto) {
                 return (object) [
                     'id' => $producto->id,
                     'nombre' => $producto->nombre,        // Usar accessor
@@ -128,10 +143,15 @@ class ProductController extends Controller
                     'tipo' => 'producto',
                     'created_at' => $producto->created_at
                 ];
-            });
+                });
 
             // Mascotas con tipo identificador (sin precio, ordenadas por fecha)
-            $mascotas = Mascota::with('user')->orderBy('created_at', 'desc')->get()->map(function ($mascota) {
+            $mascotas = Mascota::query()
+                ->whereHas('user')
+                ->with('user')
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($mascota) {
                 return (object) [
                     'id' => $mascota->id,
                     'nombre' => $mascota->nombre,
@@ -143,7 +163,7 @@ class ProductController extends Controller
                     'tipo' => 'mascota',
                     'created_at' => $mascota->created_at
                 ];
-            });
+                });
         }
 
         // Combinar items y ordenar por fecha de creación (más recientes primero)

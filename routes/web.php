@@ -58,13 +58,17 @@ use App\Http\Controllers\{
  */
 Route::get('/', function () {
     // Productos destacados (últimos 3) con información de vendedor
-    $productos = \App\Models\Product::with('user:id,name')
+    $productos = \App\Models\Product::query()
+        ->whereHas('user')
+        ->with('user:id,name')
         ->latest()
         ->take(3)
         ->get(['id', 'name', 'description', 'price', 'imagen', 'user_id']);
 
     // Todas las mascotas para cálculos de categorías (optimizado)
-    $todasLasMascotas = \App\Models\Mascota::with(['user:id,name', 'images:id,mascota_id,imagen_path'])
+    $todasLasMascotas = \App\Models\Mascota::query()
+        ->whereHas('user')
+        ->with(['user:id,name', 'images:id,mascota_id,imagen_path'])
         ->select('id', 'nombre', 'especie', 'raza', 'edad', 'descripcion', 'imagen', 'sexo', 'ciudad', 'user_id', 'created_at')
         ->latest()
         ->get();

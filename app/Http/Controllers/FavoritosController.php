@@ -43,6 +43,7 @@ class FavoritosController extends Controller
 
         // Obtener mascotas favoritas del usuario con sus relaciones
         $favoritos = $user->mascotasFavoritas()
+            ->whereHas('user')
             ->with(['user', 'images'])
             ->get();
 

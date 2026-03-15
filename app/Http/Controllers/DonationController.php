@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Donation;
+use App\Models\Shelter;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
@@ -135,7 +136,21 @@ class DonationController extends Controller
             ], 422);
         }
 
-        $donation = Donation::create($request->validated());
+        $validated = $validator->validated();
+
+        if (!empty($validated['shelter_id'])) {
+            $shelter = Shelter::query()->visible()->find($validated['shelter_id']);
+
+            if (!$shelter) {
+                return response()->json([
+                    'error' => 'El refugio seleccionado ya no estÃ¡ disponible',
+                ], 422);
+            }
+
+            $validated['shelter_id'] = $shelter->id;
+        }
+
+        $donation = Donation::create($validated);
 
         return response()->json([
             'message' => 'Donación creada exitosamente',

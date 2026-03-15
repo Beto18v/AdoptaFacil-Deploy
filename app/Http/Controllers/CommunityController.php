@@ -286,6 +286,7 @@ class CommunityController extends Controller
     public function getComments(Post $post)
     {
         $comments = $post->comments()
+            ->whereHas('user')
             ->with('user')
             ->latest()
             ->get()
@@ -295,8 +296,8 @@ class CommunityController extends Controller
                     'content' => $comment->content,
                     'created_at' => $comment->created_at->diffForHumans(),
                     'user' => [
-                        'name' => $comment->user->name,
-                        'avatarUrl' => $comment->user->avatar ? asset('storage/' . $comment->user->avatar) : null,
+                        'name' => $comment->user?->name ?? 'Usuario eliminado',
+                        'avatarUrl' => $comment->user?->avatar ? asset('storage/' . $comment->user->avatar) : null,
                     ],
                 ];
             });

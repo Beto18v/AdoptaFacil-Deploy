@@ -6,6 +6,7 @@ use App\Models\Donation;
 use App\Models\Shelter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 /**
@@ -54,7 +55,7 @@ class DonacionesController extends Controller
 
         return Inertia::render('Dashboard/Donaciones/index', [
             'donations' => $donationsQuery->get(),
-            'shelters' => Shelter::all(['id', 'name']),
+            'shelters' => Shelter::query()->visible()->get(['id', 'name']),
             // No es necesario pasar 'auth' de nuevo, HandleInertiaRequests ya lo hace.
             // Nos aseguramos que la info del refugio del usuario esté actualizada.
             'auth' => [
@@ -71,6 +72,16 @@ class DonacionesController extends Controller
             'amount' => 'required|numeric|min:1000',
             'shelter_id' => 'required|exists:shelters,id',
         ]);
+
+        $shelter = Shelter::query()->visible()->find($validatedData['shelter_id']);
+
+        if (!$shelter) {
+            throw ValidationException::withMessages([
+                'shelter_id' => 'El refugio seleccionado ya no estÃ¡ disponible.',
+            ]);
+        }
+
+        $validatedData['shelter_id'] = $shelter->id;
 
         Donation::create($validatedData);
 
