@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\BulkEmailMail;
 use App\Models\User;
 use App\Services\UserDeletionService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
@@ -14,12 +15,10 @@ class GestionUsuariosController extends Controller
 {
     public function index()
     {
-        // Verificar que sea admin
         if (auth()->user()->role !== 'admin') {
             abort(403, 'Acceso denegado');
         }
 
-        // Obtener todos los usuarios
         $usuarios = User::all();
 
         return Inertia::render('Dashboard/GestionUsuarios/index', [
@@ -29,23 +28,21 @@ class GestionUsuariosController extends Controller
 
     public function store(Request $request)
     {
-        // Debug: verificar usuario autenticado
         $currentUser = auth()->user();
         Log::info('Usuario actual intentando crear usuario:', [
             'user_id' => $currentUser ? $currentUser->id : null,
             'user_role' => $currentUser ? $currentUser->role : null,
-            'request_data' => $request->all()
+            'request_data' => $request->all(),
         ]);
 
-        if (!$currentUser || $currentUser->role !== 'admin') {
+        if (! $currentUser || $currentUser->role !== 'admin') {
             Log::warning('Acceso denegado: usuario no es admin', [
                 'user_id' => $currentUser ? $currentUser->id : null,
-                'user_role' => $currentUser ? $currentUser->role : null
+                'user_role' => $currentUser ? $currentUser->role : null,
             ]);
             abort(403, 'Acceso denegado');
         }
 
-        // Validar campos. La regla unique se limita a usuarios que NO están soft-deleted
         try {
             $request->validate([
                 'name' => 'required|string|max:255',
@@ -53,15 +50,17 @@ class GestionUsuariosController extends Controller
                 'password' => 'required|string|min:8',
                 'role' => 'required|in:cliente,aliado,admin',
             ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Error de validación:', $e->errors());
-            throw $e;
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            Log::error('Error de validacion:', $exception->errors());
+            throw $exception;
         }
 
-        // Si existe un usuario soft-deleted con el mismo email, lo restauramos y actualizamos
         $trashed = User::withTrashed()->where('email', $request->email)->first();
         if ($trashed && $trashed->trashed()) {
-            Log::info('Usuario soft-deleted encontrado. Restaurando en lugar de crear uno nuevo.', ['email' => $request->email, 'trashed_id' => $trashed->id]);
+            Log::info('Usuario soft-deleted encontrado. Restaurando en lugar de crear uno nuevo.', [
+                'email' => $request->email,
+                'trashed_id' => $trashed->id,
+            ]);
 
             $trashed->restore();
             $trashed->update([
@@ -82,14 +81,11 @@ class GestionUsuariosController extends Controller
             Log::info('Usuario creado exitosamente:', ['user_id' => $user->id, 'email' => $user->email]);
         }
 
-        Log::info('Usuario creado exitosamente:', ['user_id' => $user->id, 'email' => $user->email]);
-
-        // Enviar email de bienvenida usando Laravel nativo
         try {
-            \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\WelcomeMail($user));
+            Mail::to($user->email)->send(new \App\Mail\WelcomeMail($user));
             Log::info('Email de bienvenida enviado exitosamente via Laravel para usuario:', ['user_id' => $user->id]);
-        } catch (\Exception $e) {
-            Log::error('Error enviando email de bienvenida via Laravel: ' . $e->getMessage());
+        } catch (\Exception $exception) {
+            Log::error('Error enviando email de bienvenida via Laravel: ' . $exception->getMessage());
         }
 
         return redirect()->back()->with('success', 'Usuario creado exitosamente');
@@ -130,15 +126,68 @@ class GestionUsuariosController extends Controller
         }
 
         $request->validate([
-            'user_ids' => 'required|array',
-            'user_ids.*' => 'exists:users,id',
+            'user_ids' => 'required|array|min:1',
+            'user_ids.*' => [
+                'required',
+                'distinct',
+                Rule::exists('users', 'id')->where(fn ($query) => $query->whereNull('deleted_at')),
+            ],
+            'subject' => 'required|string|max:255',
+            'description' => 'required|string|max:5000',
         ]);
 
-        $users = User::whereIn('id', $request->user_ids)->get();
+        $users = User::query()
+            ->whereIn('id', $request->input('user_ids', []))
+            ->whereNull('deleted_at')
+            ->get(['id', 'name', 'email']);
 
-        // Simulación
+        $validRecipients = [];
+        $failedRecipients = [];
+        $subject = (string) $request->input('subject');
+        $description = (string) $request->input('description');
+
         foreach ($users as $user) {
-            // Enviar email
+            if (! filter_var($user->email, FILTER_VALIDATE_EMAIL)) {
+                $failedRecipients[] = $user->email;
+
+                Log::warning('Correo masivo omitido por email invalido', [
+                    'admin_id' => auth()->id(),
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                ]);
+
+                continue;
+            }
+
+            $validRecipients[] = $user->email;
+        }
+
+        if ($validRecipients === []) {
+            return redirect()->back()->with('error', 'No se pudo enviar ningun correo. Revisa los destinatarios seleccionados.');
+        }
+
+        try {
+            Mail::to(config('mail.from.address'))
+                ->bcc($validRecipients)
+                ->send(new BulkEmailMail((object) ['name' => ''], $subject, $description, null));
+        } catch (\Throwable $exception) {
+            Log::error('Error enviando correo masivo', [
+                'admin_id' => auth()->id(),
+                'user_ids' => $request->input('user_ids', []),
+                'valid_recipients' => $validRecipients,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return redirect()->back()->with('error', 'No se pudieron enviar los correos seleccionados.');
+        }
+
+        if ($failedRecipients !== []) {
+            $failedCount = count($failedRecipients);
+
+            return redirect()->back()->with(
+                'warning',
+                "Se envio el correo a " . count($validRecipients) . " destinatario(s). {$failedCount} destinatario(s) no se pudo procesar.",
+            );
         }
 
         return redirect()->back()->with('success', 'Correos enviados exitosamente');

@@ -3,20 +3,19 @@ import { ThemeSwitcher } from '@/components/theme-switcher';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Textarea } from '@/components/ui/textarea';
-import { showToast } from '@/lib/toast';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
 import { Edit, Eye, EyeOff, Mail, Plus, Trash2, User } from 'lucide-react';
 import { useState } from 'react';
+import BulkEmailModal from './components/bulk-email-modal';
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Gestión de Usuarios', href: route('gestion.usuarios') }];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Gestion de Usuarios', href: route('gestion.usuarios') }];
 
 type UserType = {
     id: number;
@@ -34,13 +33,13 @@ export default function GestionUsuarios() {
     const [editingUser, setEditingUser] = useState<UserType | null>(null);
     const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'cliente' });
     const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
-    const [emailSubject, setEmailSubject] = useState('');
-    const [emailDescription, setEmailDescription] = useState('');
-    const [additionalRecipients, setAdditionalRecipients] = useState<string[]>([]);
-    const [showAllRecipients, setShowAllRecipients] = useState(false);
+    const [isSendingBulkEmail, setIsSendingBulkEmail] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
     const filteredUsers = filterRole === 'all' ? usuarios : usuarios.filter((user) => user.role === filterRole);
+    const selectedRecipients = selectedUsers
+        .map((userId) => usuarios.find((user) => user.id === userId))
+        .filter((user): user is UserType => Boolean(user));
 
     const handleSelectUser = (userId: number) => {
         setSelectedUsers((prev) => (prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]));
@@ -85,96 +84,42 @@ export default function GestionUsuarios() {
     };
 
     const handleDeleteUser = (userId: number) => {
-        if (confirm('¿Estás seguro de eliminar este usuario?')) {
+        if (confirm('Estas seguro de eliminar este usuario?')) {
             router.delete(route('gestion.usuarios.destroy', userId));
         }
     };
 
-    const handleSendBulkEmail = async () => {
-        const selectedEmails = selectedUsers
-            .map((userId) => {
-                const user = usuarios.find((u) => u.id === userId);
-                return user ? user.email : null;
-            })
-            .filter((email) => email !== null);
+    const handleSendBulkEmail = ({ description, subject }: { description: string; subject: string }) => {
+        setIsSendingBulkEmail(true);
 
-        const allEmails = [...selectedEmails, ...additionalRecipients];
-
-        try {
-            const response = await fetch('/api/send-bulk-email', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
+        router.post(
+            route('gestion.usuarios.send-bulk-email'),
+            {
+                user_ids: selectedRecipients.map((recipient) => recipient.id),
+                subject,
+                description,
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setIsEmailModalOpen(false);
+                    setSelectedUsers([]);
                 },
-                body: JSON.stringify({
-                    emails: allEmails,
-                    subject: emailSubject,
-                    description: emailDescription,
-                }),
-            });
-
-            if (response.ok) {
-                showToast('Correos enviados exitosamente', 'success');
-                setIsEmailModalOpen(false);
-                setEmailSubject('');
-                setEmailDescription('');
-                setAdditionalRecipients([]);
-            } else {
-                const errorText = await response.text();
-                showToast('Error al enviar correos: ' + errorText, 'error');
-            }
-        } catch (error) {
-            showToast('Error de conexión: ' + (error as Error).message, 'error');
-        }
-    };
-
-    const generateEmailHTML = (subject: string, description: string) => {
-        return `
-            <!DOCTYPE html>
-            <html lang="es">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>${subject}</title>
-                <style>
-                    body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 20px; }
-                    .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-                    .logo { text-align: center; margin-bottom: 20px; }
-                    .logo img { width: 100px; }
-                    h1 { color: #4CAF50; text-align: center; }
-                    p { line-height: 1.6; }
-                    .cta-button { display: inline-block; background: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-                    footer { margin-top: 30px; font-size: 12px; color: #666; text-align: center; border-top: 1px solid #eee; padding-top: 20px; }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <div class="logo">
-                        <img src="/Logo/Logo.png" alt="AdoptaFácil Logo">
-                    </div>
-                    <h1>${subject}</h1>
-                    <p>Hola,</p>
-                    <p>${description.replace(/\n/g, '<br>')}</p>
-                    <p>¡Gracias por ser parte de AdoptaFácil!</p>
-                    <a href="#" class="cta-button">Visitar AdoptaFácil</a>
-                    <footer>
-                        <p>AdoptaFácil - Conectando corazones con patitas</p>
-                        <p>Si tienes alguna pregunta, contáctanos en info@adoptafacil.com</p>
-                    </footer>
-                </div>
-            </body>
-            </html>
-        `;
+                onFinish: () => {
+                    setIsSendingBulkEmail(false);
+                },
+            },
+        );
     };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Gestión de Usuarios" />
+            <Head title="Gestion de Usuarios" />
 
             <main className="scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/20 hover:scrollbar-thumb-white/40 dark:scrollbar-thumb-gray-600 dark:hover:scrollbar-thumb-gray-500 relative flex-1 overflow-y-auto bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 p-6 dark:from-green-600 dark:via-blue-700 dark:to-purple-800">
                 {/* Elementos decorativos de fondo */}
                 <div className="pointer-events-none absolute inset-0 overflow-hidden">
-                    {/* Círculos decorativos grandes */}
+                    {/* Circulos decorativos grandes */}
                     <div className="absolute -top-20 -left-20 h-64 w-64 rounded-full bg-white/5 blur-3xl"></div>
                     <div className="absolute top-1/4 -right-32 h-80 w-80 rounded-full bg-blue-300/10 blur-3xl"></div>
                     <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-purple-300/10 blur-3xl"></div>
@@ -186,14 +131,14 @@ export default function GestionUsuarios() {
                 </div>
 
                 <div className="relative z-10 container mx-auto">
-                    {/* Título de la página con gradiente */}
+                    {/* Titulo de la pagina con gradiente */}
                     <div className="mb-8 text-center">
                         <h1 className="text-4xl font-bold tracking-tight drop-shadow-lg md:text-5xl lg:text-6xl">
-                            <span className="bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">Gestión de Usuarios</span>
+                            <span className="bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">Gestion de Usuarios</span>
                         </h1>
                         <p className="mt-4 text-xl leading-relaxed font-medium text-white/90">Administra los usuarios de la plataforma</p>
 
-                        {/* Línea decorativa */}
+                        {/* Linea decorativa */}
                         <div className="mx-auto mt-6 h-1 w-32 rounded-full bg-gradient-to-r from-transparent via-white/60 to-transparent"></div>
                     </div>
 
@@ -285,7 +230,7 @@ export default function GestionUsuarios() {
                                             </div>
                                             <div className="grid grid-cols-4 items-center gap-4">
                                                 <Label htmlFor="password" className="text-right text-gray-700 dark:text-gray-200">
-                                                    Contraseña
+                                                    Contrasena
                                                 </Label>
                                                 <div className="relative col-span-3">
                                                     <Input
@@ -428,153 +373,22 @@ export default function GestionUsuarios() {
                                     </div>
                                 </DialogContent>
                             </Dialog>
-                            <Dialog open={isEmailModalOpen} onOpenChange={setIsEmailModalOpen}>
-                                <DialogContent className="fixed top-[50%] left-[50%] z-50 w-full max-w-5xl translate-x-[-50%] translate-y-[-50%] rounded-3xl bg-white/95 p-0 shadow-2xl backdrop-blur-sm data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] data-[state=open]:zoom-in-95 dark:bg-gray-800/95">
-                                    {/* Elementos decorativos del modal de email */}
-                                    <div className="pointer-events-none absolute -top-12 -right-12 h-32 w-32 rounded-full bg-gradient-to-br from-green-500/15 to-transparent"></div>
-                                    <div className="pointer-events-none absolute top-1/3 -left-8 h-20 w-20 rounded-full bg-gradient-to-tr from-blue-500/10 to-transparent"></div>
-                                    <div className="pointer-events-none absolute right-1/4 -bottom-6 h-24 w-24 rounded-full bg-gradient-to-tl from-purple-500/8 to-transparent"></div>
-
-                                    <div className="scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400 dark:scrollbar-track-gray-700 dark:scrollbar-thumb-gray-600 relative max-h-[calc(100vh-4rem)] overflow-y-auto p-8">
-                                        <DialogHeader className="mb-8">
-                                            <DialogTitle className="bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 bg-clip-text text-3xl font-bold text-transparent dark:from-green-400 dark:via-blue-400 dark:to-purple-400">
-                                                📧 Enviar Correo Masivo
-                                            </DialogTitle>
-                                            <DialogDescription className="mt-2 text-lg text-gray-600 dark:text-gray-300">
-                                                Envía un correo electrónico personalizado a los usuarios seleccionados con un diseño profesional.
-                                            </DialogDescription>
-                                        </DialogHeader>
-                                        <div className="space-y-8">
-                                            {/* Sección de Destinatarios */}
-                                            <div className="rounded-2xl bg-gradient-to-r from-blue-50 to-purple-50 p-6 dark:from-gray-700/50 dark:to-gray-600/50">
-                                                <Label className="flex items-center gap-2 text-lg font-semibold text-gray-800 dark:text-gray-200">
-                                                    👥 Destinatarios ({selectedUsers.length + additionalRecipients.length})
-                                                </Label>
-                                                <div className="mt-4 flex flex-wrap gap-3">
-                                                    {(() => {
-                                                        const allRecipients = [
-                                                            ...selectedUsers
-                                                                .map((userId) => {
-                                                                    const user = usuarios.find((u) => u.id === userId);
-                                                                    return user ? { name: user.name, email: user.email } : null;
-                                                                })
-                                                                .filter(Boolean),
-                                                            ...additionalRecipients.map((email) => ({ name: '', email })),
-                                                        ];
-                                                        const displayedRecipients = showAllRecipients ? allRecipients : allRecipients.slice(0, 2);
-                                                        return (
-                                                            <>
-                                                                {displayedRecipients.map((recipient, index) => (
-                                                                    <Badge
-                                                                        key={index}
-                                                                        variant="secondary"
-                                                                        className="border border-blue-200 bg-gradient-to-r from-blue-100 to-purple-100 px-3 py-1 text-blue-800 shadow-sm dark:border-blue-700/50 dark:from-blue-900/50 dark:to-purple-900/50 dark:text-blue-200"
-                                                                    >
-                                                                        {recipient!.name
-                                                                            ? `${recipient!.name} <${recipient!.email}>`
-                                                                            : recipient!.email}
-                                                                    </Badge>
-                                                                ))}
-                                                                {allRecipients.length > 2 && (
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="outline"
-                                                                        onClick={() => setShowAllRecipients(!showAllRecipients)}
-                                                                        className="border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:border-blue-600/50 dark:bg-blue-900/30 dark:text-blue-400"
-                                                                    >
-                                                                        {showAllRecipients ? 'Ver menos' : `Ver todos (${allRecipients.length - 2})`}
-                                                                    </Button>
-                                                                )}
-                                                            </>
-                                                        );
-                                                    })()}
-                                                </div>
-                                            </div>
-
-                                            {/* Sección de Asunto */}
-                                            <div className="rounded-2xl bg-gradient-to-r from-green-50 to-blue-50 p-6 dark:from-gray-700/50 dark:to-gray-600/50">
-                                                <Label
-                                                    htmlFor="email-subject"
-                                                    className="flex items-center gap-2 text-lg font-semibold text-gray-800 dark:text-gray-200"
-                                                >
-                                                    📝 Asunto del Correo
-                                                </Label>
-                                                <Input
-                                                    id="email-subject"
-                                                    placeholder="Ej: ¡Nuevas mascotas disponibles para adopción!"
-                                                    value={emailSubject}
-                                                    onChange={(e) => setEmailSubject(e.target.value)}
-                                                    className="mt-3 border-2 border-green-200 bg-white shadow-sm focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:focus:border-green-400"
-                                                />
-                                            </div>
-
-                                            {/* Sección de Descripción */}
-                                            <div className="rounded-2xl bg-gradient-to-r from-purple-50 to-pink-50 p-6 dark:from-gray-700/50 dark:to-gray-600/50">
-                                                <Label
-                                                    htmlFor="email-description"
-                                                    className="flex items-center gap-2 text-lg font-semibold text-gray-800 dark:text-gray-200"
-                                                >
-                                                    ✍️ Mensaje del Correo
-                                                </Label>
-                                                <Textarea
-                                                    id="email-description"
-                                                    placeholder="Escribe un mensaje cálido y personalizado para tus usuarios..."
-                                                    value={emailDescription}
-                                                    onChange={(e) => setEmailDescription(e.target.value)}
-                                                    rows={6}
-                                                    className="mt-3 border-2 border-purple-200 bg-white shadow-sm focus:border-purple-500 focus:ring-purple-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:focus:border-purple-400"
-                                                />
-                                            </div>
-                                            {/* Sección de Previsualización */}
-                                            <div className="rounded-2xl bg-gradient-to-r from-yellow-50 to-orange-50 p-6 dark:from-gray-700/50 dark:to-gray-600/50">
-                                                <Label className="flex items-center gap-2 text-lg font-semibold text-gray-800 dark:text-gray-200">
-                                                    👁️ Previsualización del Correo
-                                                </Label>
-                                                <div className="mt-4 overflow-hidden rounded-2xl border-2 border-yellow-200 bg-white shadow-lg dark:border-gray-600 dark:bg-gray-700">
-                                                    <iframe
-                                                        srcDoc={generateEmailHTML(emailSubject, emailDescription)}
-                                                        className="w-full rounded-2xl border-0"
-                                                        style={{ height: '450px' }}
-                                                        title="Email Preview"
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                        {/* Botones de acción */}
-                                        <div className="flex items-center justify-between border-t border-gray-200 pt-8 dark:border-gray-600">
-                                            <div className="text-sm text-gray-500 dark:text-gray-400">
-                                                {selectedUsers.length + additionalRecipients.length > 0
-                                                    ? `Se enviará a ${selectedUsers.length + additionalRecipients.length} destinatario${selectedUsers.length + additionalRecipients.length !== 1 ? 's' : ''}`
-                                                    : 'Selecciona al menos un destinatario'}
-                                            </div>
-                                            <div className="flex gap-4">
-                                                <Button
-                                                    variant="outline"
-                                                    onClick={() => setIsEmailModalOpen(false)}
-                                                    className="border-gray-200 bg-white shadow-sm hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-                                                >
-                                                    Cancelar
-                                                </Button>
-                                                <Button
-                                                    onClick={handleSendBulkEmail}
-                                                    disabled={
-                                                        !emailSubject.trim() ||
-                                                        !emailDescription.trim() ||
-                                                        selectedUsers.length + additionalRecipients.length === 0
-                                                    }
-                                                    className="bg-gradient-to-r from-green-500 to-green-700 text-white shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100 dark:from-green-600 dark:to-green-800"
-                                                >
-                                                    📧 Enviar Correo Masivo
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </DialogContent>
-                            </Dialog>
+                            <BulkEmailModal
+                                open={isEmailModalOpen}
+                                onOpenChange={setIsEmailModalOpen}
+                                recipients={selectedRecipients}
+                                processing={isSendingBulkEmail}
+                                onSubmit={handleSendBulkEmail}
+                                errors={{
+                                    description: errors?.description,
+                                    subject: errors?.subject,
+                                    user_ids: errors?.user_ids ?? errors?.['user_ids.0'],
+                                }}
+                            />
                         </div>
                     </div>
 
-                    {/* Tabla de usuarios con diseño mejorado */}
+                    {/* Tabla de usuarios con diseno mejorado */}
                     <div className="group hover:shadow-3xl relative overflow-hidden rounded-3xl bg-white/95 shadow-2xl backdrop-blur-sm transition-all duration-500 dark:bg-gray-800/95">
                         {/* Elementos decorativos internos */}
                         <div className="pointer-events-none absolute -top-8 -right-8 h-24 w-24 rounded-full bg-gradient-to-br from-blue-500/10 to-transparent"></div>
@@ -660,7 +474,7 @@ export default function GestionUsuarios() {
                         </div>
                     </div>
 
-                    {/* Estado vacío mejorado */}
+                    {/* Estado vacio mejorado */}
                     {filteredUsers.length === 0 && (
                         <div className="group hover:shadow-3xl relative overflow-hidden rounded-3xl bg-white/95 p-16 shadow-2xl backdrop-blur-sm transition-all duration-500 dark:bg-gray-800/95">
                             <div className="absolute -top-8 -right-8 h-24 w-24 rounded-full bg-gradient-to-br from-blue-500/10 to-transparent"></div>
@@ -679,8 +493,8 @@ export default function GestionUsuarios() {
             </main>
 
             {/* Componentes adicionales */}
+            <ThemeSwitcher hasChatbot={true} />
             <ChatbotWidget />
-            <ThemeSwitcher />
         </AppLayout>
     );
 }

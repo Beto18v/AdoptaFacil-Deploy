@@ -2,6 +2,7 @@ import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { FormEventHandler, useEffect, useRef, useState } from 'react';
 
+import ChatbotWidget from '@/components/chatbot-widget';
 import DeleteUser from '@/components/delete-user';
 import InputError from '@/components/input-error';
 import { ThemeSwitcher } from '@/components/theme-switcher';
@@ -9,9 +10,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { showToast, useToastSignal } from '@/lib/toast';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
+import { showToast, useToastSignal } from '@/lib/toast';
 import { AlertCircle, Camera, Mail, User, X } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -326,7 +327,6 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                                                 Haz clic aquí para reenviar el correo electrónico de verificación.
                                             </Link>
                                         </p>
-
                                     </div>
                                 </div>
                             </div>
@@ -350,7 +350,8 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                     <DeleteUser />
                 </div>
             </SettingsLayout>
-            <ThemeSwitcher />
+            <ThemeSwitcher hasChatbot={true} />
+            <ChatbotWidget />
         </AppLayout>
     );
 }

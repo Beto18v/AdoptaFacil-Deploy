@@ -5,6 +5,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
 import { FormEventHandler, useRef, useState } from 'react';
 
+import ChatbotWidget from '@/components/chatbot-widget';
 import { ThemeSwitcher } from '@/components/theme-switcher';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -219,7 +220,8 @@ export default function Password() {
                     </form>
                 </div>
             </SettingsLayout>
-            <ThemeSwitcher />
+            <ThemeSwitcher hasChatbot={true} />
+            <ChatbotWidget />
         </AppLayout>
     );
 }
