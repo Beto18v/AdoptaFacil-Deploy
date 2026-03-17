@@ -11,6 +11,7 @@ use Inertia\Inertia;
 
 // Importaciones organizadas por módulos
 use App\Http\Controllers\{
+    HomeController,
     MascotaController,
     ProductController,
     ShelterController,
@@ -39,32 +40,7 @@ use App\Http\Controllers\{
  * 
  * @return \Inertia\Response
  */
-Route::get('/', function () {
-    // Productos destacados (últimos 3) con información de vendedor
-    $productos = \App\Models\Product::query()
-        ->whereHas('user')
-        ->with('user:id,name')
-        ->latest()
-        ->take(3)
-        ->get(['id', 'name', 'description', 'price', 'imagen', 'user_id']);
-
-    // Todas las mascotas para cálculos de categorías (optimizado)
-    $todasLasMascotas = \App\Models\Mascota::query()
-        ->whereHas('user')
-        ->with(['user:id,name', 'images:id,mascota_id,imagen_path'])
-        ->select('id', 'nombre', 'especie', 'raza', 'edad', 'descripcion', 'imagen', 'sexo', 'ciudad', 'user_id', 'created_at')
-        ->latest()
-        ->get();
-
-    // Mascotas destacadas para mostrar (primeras 3)
-    $mascotasParaMostrar = $todasLasMascotas->take(3);
-
-    return Inertia::render('index', [
-        'productos' => $productos,
-        'mascotas' => $mascotasParaMostrar,
-        'todasLasMascotas' => $todasLasMascotas
-    ]);
-})->name('index');
+Route::get('/', [HomeController::class, 'index'])->name('index');
 
 /**
  * Catálogos públicos - Acceso sin autenticación requerida
@@ -157,9 +133,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
      */
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    /**
-     * Gestión de usuarios (solo para admin)
-     */
     /**
      * Gestión de usuarios (solo para admin)
      */
@@ -272,8 +245,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/{product}', [ProductController::class, 'show'])->name('show');
         // Actualizar producto existente (PUT estándar)
         Route::put('/{product}', [ProductController::class, 'update'])->name('update');
-        // Actualizar producto (POST con FormData - workaround para archivos)
-        Route::post('/{product}', [ProductController::class, 'update'])->name('update.post');
         // Eliminar producto
         Route::delete('/{product}', [ProductController::class, 'destroy'])->name('destroy');
     });
@@ -288,8 +259,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/{mascota}', [MascotaController::class, 'show'])->name('show');
         // Actualizar mascota existente (PUT estándar)
         Route::put('/{mascota}', [MascotaController::class, 'update'])->name('update');
-        // Actualizar mascota (POST con FormData - workaround para archivos)
-        Route::post('/{mascota}', [MascotaController::class, 'update'])->name('update.post');
         // Eliminar mascota
         Route::delete('/{mascota}', [MascotaController::class, 'destroy'])->name('destroy');
     });

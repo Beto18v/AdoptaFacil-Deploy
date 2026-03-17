@@ -38,25 +38,6 @@ class DonacionesController extends Controller
         ]);
     }
 
-    public function list(Request $request): JsonResponse
-    {
-        /** @var User $user */
-        $user = $request->user();
-
-        $donations = $this->filteredDonationsQuery($user)->paginate(15);
-
-        $donations->getCollection()->transform(function (Donation $donation) {
-            $serialized = $this->serializeDonation($donation);
-
-            return $serialized + [
-                'created_at' => Carbon::parse($serialized['created_at'])->format('Y-m-d'),
-                'shelter_name' => $serialized['shelter']['name'] ?? null,
-            ];
-        });
-
-        return response()->json($donations);
-    }
-
     public function store(Request $request)
     {
         $validatedData = $request->validate([
@@ -65,6 +46,7 @@ class DonacionesController extends Controller
             'amount' => 'required|numeric|min:1000',
             'description' => 'nullable|string|max:500',
             'shelter_id' => 'required|exists:shelters,id',
+            'payment_method' => 'nullable|in:pse,tarjeta',
         ]);
 
         $shelter = Shelter::query()->visible()->find($validatedData['shelter_id']);
@@ -114,6 +96,7 @@ class DonacionesController extends Controller
         $validator = validator($request->all(), [
             'donations' => 'required|array|min:1',
             'donations.*.donor_name' => 'nullable|string|max:255',
+            'donations.*.donor_email' => 'nullable|email|max:255',
             'donations.*.amount' => 'required|numeric|min:0.01',
             'donations.*.created_at' => 'required|date_format:Y-m-d',
             'donations.*.description' => 'nullable|string|max:500',
@@ -133,8 +116,10 @@ class DonacionesController extends Controller
                 return [
                     'donor_name' => filled($donation['donor_name'] ?? null)
                         ? trim((string) $donation['donor_name'])
-                        : $user->name,
-                    'donor_email' => null,
+                        : 'Donante importado',
+                    'donor_email' => filled($donation['donor_email'] ?? null)
+                        ? trim((string) $donation['donor_email'])
+                        : null,
                     'amount' => $donation['amount'],
                     'description' => $donation['description'] ?? null,
                     'shelter_id' => $user->shelter->id,
@@ -164,20 +149,6 @@ class DonacionesController extends Controller
                 'details' => $exception->getMessage(),
             ], 500);
         }
-    }
-
-    public function stats(Request $request): JsonResponse
-    {
-        /** @var User $user */
-        $user = $request->user();
-        $baseQuery = $this->filteredDonationsQuery($user);
-
-        return response()->json([
-            'total_donations' => (clone $baseQuery)->count(),
-            'total_amount' => (clone $baseQuery)->sum('amount'),
-            'imported_donations' => (clone $baseQuery)->whereNotNull('shelter_id')->whereNull('donor_email')->count(),
-            'direct_donations' => (clone $baseQuery)->whereNotNull('donor_email')->count(),
-        ]);
     }
 
     private function filteredDonationsQuery(User $user): Builder
@@ -210,6 +181,7 @@ class DonacionesController extends Controller
             'donor_email' => $donation->donor_email,
             'amount' => (float) $donation->amount,
             'description' => $donation->description,
+            'payment_method' => $donation->payment_method,
             'created_at' => $donation->created_at?->toISOString(),
             'is_imported' => $donation->isImported(),
             'shelter' => $donation->shelter ? [

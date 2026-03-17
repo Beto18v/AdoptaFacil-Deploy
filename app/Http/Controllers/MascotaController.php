@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Mascota;
 use App\Http\Requests\StoreMascotaRequest;
 use App\Http\Requests\UpdateMascotaRequest;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Gate;
@@ -24,10 +26,7 @@ class MascotaController extends Controller
      */
     public function index()
     {
-        $mascotas = Mascota::query()
-            ->whereHas('user')
-            ->with(['user', 'images'])
-            ->get();
+        $mascotas = $this->mascotaQuery()->get();
 
         return Inertia::render('Cliente/Mascotas', ['mascotas' => $mascotas]);
     }
@@ -37,10 +36,7 @@ class MascotaController extends Controller
      */
     public function indexPublic()
     {
-        $mascotas = Mascota::query()
-            ->whereHas('user')
-            ->with(['user', 'images'])
-            ->get();
+        $mascotas = $this->mascotaQuery()->get();
 
         return Inertia::render('mascotas', ['mascotas' => $mascotas]);
     }
@@ -49,36 +45,18 @@ class MascotaController extends Controller
      * Registra mascota con sistema de múltiples imágenes (hasta 3)
      * Usa StoreMascotaRequest para validación de datos e imágenes
      */
-    public function store(StoreMascotaRequest $request)
+    public function store(StoreMascotaRequest $request): RedirectResponse
     {
         $data = $request->validated();
         $data['user_id'] = Auth::id();
+        $imagePaths = $this->uploadMascotaImages($request);
 
-        // Primera imagen como imagen principal (compatibilidad con sistema anterior)
-        if ($request->hasFile('imagenes') && count($request->file('imagenes')) > 0) {
-            $firstImage = $request->file('imagenes')[0];
-            $path = $this->uploadSecurely($firstImage, 'mascotas', 'public');
-            if ($path) {
-                $data['imagen'] = $path;
-            }
+        if ($imagePaths !== []) {
+            $data['imagen'] = $imagePaths[0];
         }
 
         $mascota = Mascota::create($data);
-
-        // Guardar todas las imágenes en tabla mascota_images con orden
-        if ($request->hasFile('imagenes')) {
-            foreach ($request->file('imagenes') as $index => $imagen) {
-                $path = $this->uploadSecurely($imagen, 'mascotas', 'public');
-                
-                if ($path) {
-                    \App\Models\MascotaImage::create([
-                        'mascota_id' => $mascota->id,
-                        'imagen_path' => $path,
-                        'orden' => $index + 1, // Orden para galería
-                    ]);
-                }
-            }
-        }
+        $this->storeMascotaImages($mascota, $imagePaths);
 
         return Redirect::route('productos.mascotas')->with('success', 'Mascota registrada correctamente');
     }
@@ -108,26 +86,19 @@ class MascotaController extends Controller
     /**
      * Actualiza una mascota existente
      */
-    public function update(UpdateMascotaRequest $request, Mascota $mascota)
+    public function update(UpdateMascotaRequest $request, Mascota $mascota): RedirectResponse
     {
         Gate::authorize('update', $mascota);
 
         $data = $request->validated();
-        $mascota->update($data);
+        $imagePaths = $this->uploadMascotaImages($request);
 
-        // Manejar nuevas imágenes si se proporcionan
-        if ($request->hasFile('imagenes')) {
-            foreach ($request->file('imagenes') as $index => $imagen) {
-                $path = $this->uploadSecurely($imagen, 'mascotas', 'public');
-                
-                if ($path) {
-                    $mascota->images()->create([
-                        'imagen_path' => $path,
-                        'orden' => $mascota->images()->count() + $index + 1,
-                    ]);
-                }
-            }
+        if ($imagePaths !== []) {
+            $data['imagen'] = $imagePaths[0];
         }
+
+        $mascota->update($data);
+        $this->storeMascotaImages($mascota, $imagePaths, $mascota->images()->count());
 
         return Redirect::route('productos.mascotas')->with('success', 'Mascota actualizada correctamente');
     }
@@ -140,5 +111,47 @@ class MascotaController extends Controller
         Gate::authorize('delete', $mascota);
         $mascota->delete();
         return redirect()->route('productos.mascotas')->with('success', 'Mascota eliminada correctamente.');
+    }
+
+    private function mascotaQuery(): Builder
+    {
+        return Mascota::query()
+            ->whereHas('user')
+            ->with(['user', 'images']);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function uploadMascotaImages(Request $request): array
+    {
+        $paths = [];
+
+        if (! $request->hasFile('imagenes')) {
+            return $paths;
+        }
+
+        foreach ($request->file('imagenes') as $imagen) {
+            $path = $this->uploadSecurely($imagen, 'mascotas', 'public');
+
+            if ($path) {
+                $paths[] = $path;
+            }
+        }
+
+        return $paths;
+    }
+
+    /**
+     * @param array<int, string> $paths
+     */
+    private function storeMascotaImages(Mascota $mascota, array $paths, int $startingOrder = 0): void
+    {
+        foreach ($paths as $index => $path) {
+            $mascota->images()->create([
+                'imagen_path' => $path,
+                'orden' => $startingOrder + $index + 1,
+            ]);
+        }
     }
 }

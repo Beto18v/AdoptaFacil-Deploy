@@ -192,7 +192,7 @@ export default function Register({ role }: { role: string }) {
 
                         {/* Botón de Google */}
                         <a
-                            href={route('auth.google')}
+                            href={route('auth.google', data.role ? { role: data.role } : {})}
                             className="group relative mt-4 inline-block w-full overflow-hidden rounded-xl border-2 border-gray-300 bg-white px-8 py-4 text-center font-semibold text-gray-700 shadow-lg transition-all duration-300 hover:scale-105 hover:border-gray-400 hover:shadow-xl focus:ring-4 focus:ring-gray-300/50 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:hover:border-gray-500"
                             tabIndex={5}
                         >

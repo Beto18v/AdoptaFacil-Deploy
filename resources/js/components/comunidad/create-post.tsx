@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { getAvatarUrl } from '@/lib/avatar-utils';
+import { backendJson } from '@/lib/http';
 import { showToast } from '@/lib/toast';
 import { router } from '@inertiajs/react';
 import { ImagePlus, LogIn, Send, Video } from 'lucide-react';
@@ -83,13 +84,6 @@ export default function CreatePost({ user, onPostCreated }: CreatePostProps) {
         setIsSubmitting(true);
 
         try {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-
-            if (!csrfToken) {
-                showToast('Error de seguridad. Por favor, recarga la página.', 'error');
-                return;
-            }
-
             const formData = new FormData();
             formData.append('content', content);
             formData.append('category', category);
@@ -97,18 +91,14 @@ export default function CreatePost({ user, onPostCreated }: CreatePostProps) {
                 formData.append('image', image);
             }
 
-            const response = await fetch('/comunidad/posts', {
+            const { response, data } = await backendJson<{
+                post?: Post;
+                message?: string;
+                errors?: Record<string, string[]>;
+            }>('/comunidad/posts', {
                 method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': csrfToken,
-                    Accept: 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
                 body: formData,
-                credentials: 'same-origin',
             });
-
-            const data = await response.json();
 
             if (response.ok) {
                 // Limpiar el formulario
@@ -118,16 +108,16 @@ export default function CreatePost({ user, onPostCreated }: CreatePostProps) {
                 showToast('¡Publicación creada exitosamente!', 'success');
 
                 // Llamar al callback para actualizar la lista
-                if (onPostCreated && data.post) {
+                if (onPostCreated && data?.post) {
                     onPostCreated(data.post);
                 }
             } else {
                 // Manejar errores de validación
-                if (data.errors) {
+                if (data?.errors) {
                     const errorMessages = Object.values(data.errors).flat().join(', ');
                     showToast(errorMessages, 'error');
                 } else {
-                    showToast(data.message || 'Error al publicar', 'error');
+                    showToast(data?.message || 'Error al publicar', 'error');
                 }
             }
         } catch (error) {

@@ -1,6 +1,7 @@
 // resources/js/components/comunidad/post-card.tsx
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { backendJson } from '@/lib/http';
 import { router } from '@inertiajs/react';
 import { Heart, MessageCircle, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -71,26 +72,11 @@ export default function PostCard({ post, user, onDelete, onLikeUpdate, onComment
         setIsLiking(true);
 
         try {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-
-            if (!csrfToken) {
-                console.error('CSRF token no encontrado');
-                return;
-            }
-
-            const response = await fetch(`/comunidad/posts/${post.id}/like`, {
+            const { response, data } = await backendJson<{ likes_count: number; liked: boolean }>(`/comunidad/posts/${post.id}/like`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                credentials: 'same-origin',
             });
 
-            if (response.ok) {
-                const data = await response.json();
+            if (response.ok && data) {
                 setLikes(data.likes_count);
                 setIsLiked(data.liked);
 

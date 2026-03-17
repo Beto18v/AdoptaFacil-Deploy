@@ -1,6 +1,7 @@
 // resources/js/components/comunidad/trending-topics.tsx
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { backendJson } from '@/lib/http';
 import { Flame } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -19,10 +20,11 @@ export default function TrendingTopics() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetch('/api/top-shelters')
-            .then((res) => res.json())
-            .then((data) => {
-                setAllies(data);
+        backendJson<Ally[]>('/api/top-shelters')
+            .then(({ response, data }) => {
+                if (response.ok && data) {
+                    setAllies(data);
+                }
                 setLoading(false);
             })
             .catch(() => setLoading(false));

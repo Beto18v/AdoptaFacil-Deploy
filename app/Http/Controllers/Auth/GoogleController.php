@@ -15,12 +15,21 @@ class GoogleController extends Controller
     public function redirect(Request $request)
     {
         $useStateless = (bool) env('GOOGLE_OAUTH_STATELESS', false);
+        $selectedRole = $request->string('role')->toString();
+        $role = in_array($selectedRole, ['cliente', 'aliado'], true) ? $selectedRole : null;
+
+        $request->session()->forget('google_oauth_role');
+
+        if ($role !== null) {
+            $request->session()->put('google_oauth_role', $role);
+        }
 
         Log::info('Google OAuth redirect start', [
             'url' => $request->fullUrl(),
             'secure' => $request->isSecure(),
             'forwarded_proto' => $request->header('x-forwarded-proto'),
             'use_stateless' => $useStateless,
+            'requested_role' => $role,
         ]);
 
         $driver = Socialite::driver('google');
@@ -34,6 +43,8 @@ class GoogleController extends Controller
     public function callback(Request $request)
     {
         $useStateless = (bool) env('GOOGLE_OAUTH_STATELESS', false);
+        $requestedRole = $request->session()->pull('google_oauth_role');
+        $role = in_array($requestedRole, ['cliente', 'aliado'], true) ? $requestedRole : 'cliente';
 
         try {
             $driver = Socialite::driver('google');
@@ -47,7 +58,7 @@ class GoogleController extends Controller
             $email = (string) $googleUser->getEmail();
             $name = (string) ($googleUser->getName() ?: $email);
 
-            [$user, $isNewUser] = DB::transaction(function () use ($googleId, $email, $name) {
+            [$user, $isNewUser] = DB::transaction(function () use ($googleId, $email, $name, $role) {
                 $userByGoogleId = User::query()->withTrashed()->where('google_id', $googleId)->first();
                 $userByEmail = User::query()->withTrashed()->where('email', $email)->first();
 
@@ -69,6 +80,7 @@ class GoogleController extends Controller
                     $user = User::create([
                         'name' => $name,
                         'email' => $email,
+                        'role' => $role,
                         'google_id' => $googleId,
                         'password' => bcrypt(uniqid()),
                         'email_verified_at' => now(),
@@ -138,6 +150,7 @@ class GoogleController extends Controller
                 'session_cookie_present' => $request->cookies->has((string) config('session.cookie')),
                 'app_url' => config('app.url'),
                 'google_redirect' => config('services.google.redirect'),
+                'requested_role' => $requestedRole,
             ]);
 
             return redirect()->route('login')->withErrors(['google' => 'Error al iniciar sesión con Google.']);

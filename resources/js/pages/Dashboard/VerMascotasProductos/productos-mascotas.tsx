@@ -6,6 +6,7 @@
 // Dashboard unificado: productos y mascotas para gestión de aliados
 import ChatbotWidget from '@/components/chatbot-widget';
 import { ThemeSwitcher } from '@/components/theme-switcher';
+import { backendJson } from '@/lib/http';
 import { showToast } from '@/lib/toast';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
@@ -166,18 +167,9 @@ export default function ProductosMascotas() {
         try {
             if (item.tipo === 'mascota') {
                 // Obtener datos completos de la mascota desde el backend
-                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-                const response = await fetch(`/mascotas/${item.id}`, {
-                    headers: {
-                        Accept: 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRF-TOKEN': csrfToken || '',
-                    },
-                    credentials: 'same-origin',
-                });
+                const { response, data: mascotaCompleta } = await backendJson(`/mascotas/${item.id}`);
 
-                if (response.ok) {
-                    const mascotaCompleta = await response.json();
+                if (response.ok && mascotaCompleta) {
                     setMascotaEditando({
                         ...item,
                         ...mascotaCompleta,

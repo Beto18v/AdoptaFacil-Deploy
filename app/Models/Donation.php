@@ -16,6 +16,7 @@ class Donation extends Model
         'amount',
         'shelter_id',
         'description',
+        'payment_method',
     ];
 
     public function shelter(): BelongsTo
@@ -36,9 +37,10 @@ class Donation extends Model
      */
     public function getDonorDisplayName(): string
     {
-        if ($this->isImported() && $this->shelter) {
-            return $this->shelter->name ?? $this->donor_name;
+        if ($this->isImported()) {
+            return $this->donor_name ?: 'Donante importado';
         }
+
         return $this->donor_name;
     }
 }

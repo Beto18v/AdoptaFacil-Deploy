@@ -3,6 +3,7 @@ import { ThemeSwitcher } from '@/components/theme-switcher';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { backendJson } from '@/lib/http';
 import { showToast } from '@/lib/toast';
 import AppLayout from '@/layouts/app-layout';
 import { Head, router } from '@inertiajs/react';
@@ -82,19 +83,14 @@ export default function SolicitudesIndex({ auth, solicitudes }: SolicitudesPageP
         if (!selectedSolicitud) return;
 
         try {
-            const response = await fetch(route('solicitudes.updateEstado', selectedSolicitud.id), {
+            const { response } = await backendJson(route('solicitudes.updateEstado', selectedSolicitud.id), {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': (document.querySelector('meta[name=csrf-token]') as HTMLMetaElement)?.content || '',
-                },
-                body: JSON.stringify({ estado: 'Aprobada' }),
+                json: { estado: 'Aprobada' },
             });
 
             if (response.ok) {
                 setSelectedSolicitud({ ...selectedSolicitud, estado: 'Aprobada' });
-                window.location.reload();
+                router.reload({ only: ['solicitudes'] });
             } else {
                 throw new Error('Error en la respuesta del servidor');
             }
@@ -109,21 +105,15 @@ export default function SolicitudesIndex({ auth, solicitudes }: SolicitudesPageP
 
         setIsSubmittingReject(true);
         try {
-            const response = await fetch(route('solicitudes.updateEstado', selectedSolicitud.id), {
+            const { response } = await backendJson(route('solicitudes.updateEstado', selectedSolicitud.id), {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': (document.querySelector('meta[name=csrf-token]') as HTMLMetaElement)?.content || '',
-                },
-                body: JSON.stringify({
+                json: {
                     estado: 'Rechazada',
                     comentario_rechazo: comentarioRechazo,
-                }),
+                },
             });
 
             if (response.ok) {
-                await response.json();
                 setSelectedSolicitud({
                     ...selectedSolicitud,
                     estado: 'Rechazada',
@@ -131,7 +121,7 @@ export default function SolicitudesIndex({ auth, solicitudes }: SolicitudesPageP
                 });
                 setShowRejectModal(false);
                 setComentarioRechazo('');
-                window.location.reload();
+                router.reload({ only: ['solicitudes'] });
             }
         } catch (error) {
             console.error('Error al rechazar solicitud:', error);

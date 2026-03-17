@@ -1,5 +1,6 @@
 // resources/js/components/comunidad/share-button.tsx
 import { Button } from '@/components/ui/button';
+import { backendJson } from '@/lib/http';
 import { showToast } from '@/lib/toast';
 import { Copy, ExternalLink, Share2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -52,29 +53,14 @@ export default function ShareButton({ postId, disabled = false, className = '' }
         setIsSharing(true);
 
         try {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-
-            if (!csrfToken) {
-                console.error('CSRF token no encontrado');
-                showToast('Error: Token CSRF no encontrado. Recarga la página.', 'error');
-                setIsSharing(false);
-                return;
-            }
-
-            const response = await fetch(`/comunidad/posts/${postId}/share`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest',
+            const { response, data } = await backendJson<{ success?: boolean; url?: string; message?: string }>(
+                `/comunidad/posts/${postId}/share`,
+                {
+                    method: 'POST',
                 },
-                credentials: 'same-origin',
-            });
+            );
 
-            const data = await response.json();
-
-            if (response.ok && data.success) {
+            if (response.ok && data?.success && data.url) {
                 setShareUrl(data.url);
                 setShowShareMenu(true);
 
@@ -100,7 +86,7 @@ export default function ShareButton({ postId, disabled = false, className = '' }
                 }
             } else {
                 console.error('Error en la respuesta:', data);
-                showToast(`Error al compartir: ${data.message || 'Error desconocido'}`, 'error');
+                showToast(`Error al compartir: ${data?.message || 'Error desconocido'}`, 'error');
             }
         } catch (error) {
             console.error('Error en la petición:', error);

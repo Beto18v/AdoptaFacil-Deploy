@@ -138,7 +138,7 @@ export default function FormularioDonacion({ showModal, onClose, shelters }: For
                                 </svg>
                             </div>
                             <p className="mb-8 max-w-md text-xl leading-relaxed text-gray-700 dark:text-gray-300">
-                                Tu generosa contribución ayudará a muchas mascotas. Hemos enviado un recibo a tu correo electrónico.
+                                Tu generosa contribución ayudará a muchas mascotas. Tu donación quedó registrada correctamente.
                             </p>
                             <div className="flex w-full max-w-md flex-col gap-4 sm:flex-row sm:justify-center">
                                 <button

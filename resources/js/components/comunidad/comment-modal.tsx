@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { getAvatarUrl } from '@/lib/avatar-utils';
+import { backendJson } from '@/lib/http';
 import { Heart, MessageCircle, Send } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -61,9 +62,8 @@ export default function CommentModal({ isOpen, onClose, post, user, comments = [
     const loadComments = useCallback(async () => {
         setIsLoadingComments(true);
         try {
-            const response = await fetch(`/comunidad/posts/${post.id}/comments`);
-            if (response.ok) {
-                const data = await response.json();
+            const { response, data } = await backendJson<{ comments: Comment[] }>(`/comunidad/posts/${post.id}/comments`);
+            if (response.ok && data) {
                 setPostComments(data.comments);
             }
         } catch (error) {
@@ -92,26 +92,11 @@ export default function CommentModal({ isOpen, onClose, post, user, comments = [
         setIsLiking(true);
 
         try {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-
-            if (!csrfToken) {
-                console.error('CSRF token no encontrado');
-                return;
-            }
-
-            const response = await fetch(`/comunidad/posts/${currentPost.id}/like`, {
+            const { response, data } = await backendJson<{ likes_count: number; liked: boolean }>(`/comunidad/posts/${currentPost.id}/like`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                credentials: 'same-origin',
             });
 
-            if (response.ok) {
-                const data = await response.json();
+            if (response.ok && data) {
                 setCurrentPost((prev) => ({
                     ...prev,
                     likes: data.likes_count,
@@ -138,29 +123,14 @@ export default function CommentModal({ isOpen, onClose, post, user, comments = [
         setIsSubmitting(true);
 
         try {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-
-            if (!csrfToken) {
-                console.error('CSRF token no encontrado');
-                return;
-            }
-
-            const response = await fetch(`/comunidad/posts/${post.id}/comments`, {
+            const { response, data } = await backendJson<{ comment: Comment }>(`/comunidad/posts/${post.id}/comments`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                credentials: 'same-origin',
-                body: JSON.stringify({
+                json: {
                     content: newComment,
-                }),
+                },
             });
 
-            if (response.ok) {
-                const data = await response.json();
+            if (response.ok && data) {
                 setPostComments((prev) => [data.comment, ...prev]);
                 setNewComment('');
 

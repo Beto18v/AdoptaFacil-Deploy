@@ -19,7 +19,7 @@ class UpdateMascotaRequest extends FormRequest
         $mascota = $this->route('mascota');
 
         return auth()->check() &&
-            ($user->role === 'admin' || $user->role === 'aliado' || $user->id === $mascota->user_id);
+            ($user->role === 'admin' || $user->id === $mascota->user_id);
     }
 
     /**

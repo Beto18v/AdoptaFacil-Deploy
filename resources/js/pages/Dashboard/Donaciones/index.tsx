@@ -4,7 +4,7 @@ import { ThemeSwitcher } from '@/components/theme-switcher';
 import AppLayout from '@/layouts/app-layout';
 import { generateDonationsReport } from '@/lib/report-generator';
 import { type BreadcrumbItem } from '@/types';
-import { Head, usePage } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import FormularioDonacion from './components/formulario-donacion';
 import FormularioFundacion from './components/formulario-fundacion';
@@ -310,8 +310,7 @@ export default function DonationsSummary() {
     const [showDonationFormModal, setShowDonationFormModal] = useState(false);
 
     const handleImportSuccess = () => {
-        // Refrescar la página para mostrar las nuevas donaciones
-        window.location.reload();
+        router.reload({ only: ['donations'] });
     };
 
     const stats = {

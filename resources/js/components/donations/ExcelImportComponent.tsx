@@ -1,9 +1,12 @@
+import { backendJson } from '@/lib/http';
 import { useToastMessage } from '@/lib/toast';
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import * as XLSX from 'xlsx';
 
 interface DonationData {
+    donor_name?: string;
+    donor_email?: string;
     amount: number;
     created_at: string;
     description?: string;
@@ -22,6 +25,23 @@ interface ColumnMapping {
 interface ExcelImportComponentProps {
     onImportSuccess: () => void;
 }
+
+const DONOR_NAME_ALIASES = ['donor_name', 'nombre_donante', 'donante', 'nombre', 'full_name'];
+const DONOR_EMAIL_ALIASES = ['donor_email', 'email', 'correo', 'correo_electronico', 'email_donante'];
+
+const normalizeColumnName = (value: string) => value.trim().toLowerCase().replace(/\s+/g, '_');
+
+const findOptionalColumnValue = (row: RawRowData, aliases: string[]): string | undefined => {
+    const match = Object.keys(row).find((key) => aliases.includes(normalizeColumnName(key)));
+
+    if (!match) {
+        return undefined;
+    }
+
+    const value = String(row[match] || '').trim();
+
+    return value || undefined;
+};
 
 export function ExcelImportComponent({ onImportSuccess }: ExcelImportComponentProps) {
     const [step, setStep] = useState<'upload' | 'mapping' | 'preview'>('upload');
@@ -124,6 +144,8 @@ export function ExcelImportComponent({ onImportSuccess }: ExcelImportComponentPr
                     }
 
                     return {
+                        donor_name: findOptionalColumnValue(row, DONOR_NAME_ALIASES),
+                        donor_email: findOptionalColumnValue(row, DONOR_EMAIL_ALIASES),
                         amount,
                         created_at: dateString,
                         description: columnMapping.description ? String(row[columnMapping.description] || '').trim() : undefined,
@@ -157,20 +179,13 @@ export function ExcelImportComponent({ onImportSuccess }: ExcelImportComponentPr
         setError(null);
 
         try {
-            const response = await fetch(route('donaciones.import'), {
+            const { response, data } = await backendJson<{ error?: string }>(route('donaciones.import'), {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                },
-                credentials: 'include',
-                body: JSON.stringify({ donations: previewData }),
+                json: { donations: previewData },
             });
 
-            const result = await response.json();
-
             if (!response.ok) {
-                throw new Error(result.error || 'Error al importar donaciones');
+                throw new Error(data?.error || 'Error al importar donaciones');
             }
 
             onImportSuccess();

@@ -5,13 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\Mascota;
-use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Redirect;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 
 /**
@@ -33,21 +34,9 @@ class ProductController extends Controller
      */
     public function indexPublic()
     {
-        $productos = Product::query()
-            ->whereHas('user')
-            ->with('user')
-            ->orderBy('created_at', 'desc')
+        $productos = $this->productQuery()
             ->get()
-            ->map(function ($producto) {
-            return (object) [
-                'id' => $producto->id,
-                'nombre' => $producto->nombre,        // Usar accessor
-                'descripcion' => $producto->descripcion, // Usar accessor
-                'precio' => $producto->precio,        // Usar accessor
-                'imagen' => $producto->imagen,
-                'user' => $producto->user,
-            ];
-            });
+            ->map(fn (Product $producto) => $this->serializePublicProduct($producto));
 
         return Inertia::render('productos', ['productos' => $productos]);
     }
@@ -65,96 +54,21 @@ class ProductController extends Controller
     {
         $user = Auth::user();
 
-        // Si es aliado, solo mostrar sus propios productos y mascotas
-        if ($user && $user->role === 'aliado') {
-            // Productos del aliado autenticado (ordenados por fecha de creación descendente)
-            $productos = Product::query()
-                ->whereHas('user')
-                ->with('user')
-                ->where('user_id', $user->id)
-                ->orderBy('created_at', 'desc')
-                ->get()
-                ->map(function ($producto) {
-                    return (object) [
-                        'id' => $producto->id,
-                        'nombre' => $producto->nombre,        // Usar accessor
-                        'descripcion' => $producto->descripcion, // Usar accessor
-                        'precio' => $producto->precio,        // Usar accessor
-                        'imagen' => $producto->imagen,
-                        'user_id' => $producto->user_id,
-                        'user' => $producto->user,
-                        'tipo' => 'producto',
-                        'created_at' => $producto->created_at,
-                        'imagenes_existentes' => $producto->images->pluck('image_path')->toArray(),
-                    ];
-                });
+        $isAlly = $user && $user->role === 'aliado';
+        $ownerId = $isAlly ? $user->id : null;
 
-            // Mascotas del aliado autenticado (ordenadas por fecha de creación descendente)
-            $mascotas = Mascota::query()
-                ->whereHas('user')
-                ->with('user')
-                ->where('user_id', $user->id)
-                ->orderBy('created_at', 'desc')
-                ->get()
-                ->map(function ($mascota) {
-                    return (object) [
-                        'id' => $mascota->id,
-                        'nombre' => $mascota->nombre,
-                        'descripcion' => $mascota->descripcion,
-                        'precio' => null,
-                        'imagen' => $mascota->imagen,
-                        'user_id' => $mascota->user_id,
-                        'user' => $mascota->user,
-                        'tipo' => 'mascota',
-                        'created_at' => $mascota->created_at
-                    ];
-                });
-        } else {
-            // Para clientes y otros roles, mostrar todos los productos y mascotas (ordenados por fecha)
-            $productos = Product::query()
-                ->whereHas('user')
-                ->with('user')
-                ->orderBy('created_at', 'desc')
-                ->get()
-                ->map(function ($producto) {
-                return (object) [
-                    'id' => $producto->id,
-                    'nombre' => $producto->nombre,        // Usar accessor
-                    'descripcion' => $producto->descripcion, // Usar accessor
-                    'precio' => $producto->precio,        // Usar accessor
-                    'imagen' => $producto->imagen,
-                    'user_id' => $producto->user_id,
-                    'user' => $producto->user,
-                    'tipo' => 'producto',
-                    'created_at' => $producto->created_at
-                ];
-                });
+        $productos = $this->productQuery($ownerId)
+            ->get()
+            ->map(fn (Product $producto) => $this->serializeDashboardProduct($producto, $isAlly));
 
-            // Mascotas con tipo identificador (sin precio, ordenadas por fecha)
-            $mascotas = Mascota::query()
-                ->whereHas('user')
-                ->with('user')
-                ->orderBy('created_at', 'desc')
-                ->get()
-                ->map(function ($mascota) {
-                return (object) [
-                    'id' => $mascota->id,
-                    'nombre' => $mascota->nombre,
-                    'descripcion' => $mascota->descripcion,
-                    'precio' => null,
-                    'imagen' => $mascota->imagen,
-                    'user_id' => $mascota->user_id,
-                    'user' => $mascota->user,
-                    'tipo' => 'mascota',
-                    'created_at' => $mascota->created_at
-                ];
-                });
-        }
+        $mascotas = $this->mascotaQuery($ownerId)
+            ->get()
+            ->map(fn (Mascota $mascota) => $this->serializeDashboardMascota($mascota));
 
-        // Combinar items y ordenar por fecha de creación (más recientes primero)
-        $items = $productos->concat($mascotas)->sortByDesc(function ($item) {
-            return $item->created_at;
-        })->values(); // values() reindexes the collection
+        $items = $productos
+            ->concat($mascotas)
+            ->sortByDesc(fn ($item) => $item->created_at)
+            ->values();
 
         return Inertia::render('Dashboard/VerMascotasProductos/productos-mascotas', [
             'items' => $items
@@ -165,51 +79,30 @@ class ProductController extends Controller
      * Almacena producto con múltiples imágenes (1-3) para dashboard unificado
      * Crea registros en product_images y mantiene imagen principal para compatibilidad
      */
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
-        // Validación para múltiples imágenes
         $validatedData = $request->validate([
             'nombre' => 'required|string|max:255',
             'descripcion' => 'required|string',
             'precio' => 'required|numeric|min:0',
             'cantidad' => 'required|integer|min:0',
-            'imagenes' => 'required|array|min:1|max:3', // Array de 1-3 imágenes
+            'imagenes' => 'required|array|min:1|max:3',
             'imagenes.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        // Crear producto principal con nombres de campos actualizados
+        $imagePaths = $this->uploadProductImages($request);
+
         $producto = new Product();
-        $producto->name = $request->nombre;         // Mapear nombre -> name
-        $producto->description = $request->descripcion; // Mapear descripcion -> description
-        $producto->price = $request->precio;        // Mapear precio -> price
-        $producto->stock = $request->cantidad;      // Mapear cantidad -> stock
+        $producto->name = $validatedData['nombre'];
+        $producto->description = $validatedData['descripcion'];
+        $producto->price = $validatedData['precio'];
+        $producto->stock = $validatedData['cantidad'];
         $producto->user_id = Auth::id();
-
-        // Usar primera imagen como imagen principal (compatibilidad con sistema anterior)
-        if ($request->hasFile('imagenes') && count($request->file('imagenes')) > 0) {
-            $firstImage = $request->file('imagenes')[0];
-            $path = $this->uploadSecurely($firstImage, 'productos', 'public');
-            if ($path) {
-                $producto->imagen = $path;
-            }
+        if ($imagePaths !== []) {
+            $producto->imagen = $imagePaths[0];
         }
-
         $producto->save();
-
-        // Guardar todas las imágenes en tabla de relación product_images
-        if ($request->hasFile('imagenes')) {
-            foreach ($request->file('imagenes') as $index => $imagen) {
-                $path = $this->uploadSecurely($imagen, 'productos', 'public');
-                
-                if ($path) {
-                    ProductImage::create([
-                        'product_id' => $producto->id,
-                        'image_path' => $path,
-                        'order' => $index + 1, // Orden de las imágenes
-                    ]);
-                }
-            }
-        }
+        $this->storeProductImages($producto, $imagePaths);
 
         return Redirect::route('productos.mascotas')->with('success', 'Producto registrado exitosamente.');
     }
@@ -236,41 +129,21 @@ class ProductController extends Controller
     /**
      * Actualiza producto existente con el mismo formato que store
      */
-    public function update(UpdateProductRequest $request, Product $product)
+    public function update(UpdateProductRequest $request, Product $product): RedirectResponse
     {
         Gate::authorize('update', $product);
+        $imagePaths = $this->uploadProductImages($request);
 
-        // Actualizar campos usando los mismos nombres del formulario
         $product->name = $request->nombre;
         $product->description = $request->descripcion;
         $product->price = $request->precio;
         $product->stock = $request->cantidad;
-
-        // Actualizar imagen principal si se proporciona nueva
-        if ($request->hasFile('imagenes') && count($request->file('imagenes')) > 0) {
-            $firstImage = $request->file('imagenes')[0];
-            $path = $this->uploadSecurely($firstImage, 'productos', 'public');
-            if ($path) {
-                $product->imagen = $path;
-            }
+        if ($imagePaths !== []) {
+            $product->imagen = $imagePaths[0];
         }
 
         $product->save();
-
-        // Agregar nuevas imágenes (manteniendo las existentes por ahora)
-        if ($request->hasFile('imagenes')) {
-            foreach ($request->file('imagenes') as $index => $imagen) {
-                $path = $this->uploadSecurely($imagen, 'productos', 'public');
-                
-                if ($path) {
-                    ProductImage::create([
-                        'product_id' => $product->id,
-                        'image_path' => $path,
-                        'order' => $product->images()->count() + $index + 1,
-                    ]);
-                }
-            }
-        }
+        $this->storeProductImages($product, $imagePaths, $product->images()->count());
 
         return Redirect::route('productos.mascotas')->with('success', 'Producto actualizado exitosamente.');
     }
@@ -289,5 +162,102 @@ class ProductController extends Controller
 
         $product->delete();
         return redirect()->route('productos.mascotas')->with('success', 'Producto eliminado exitosamente.');
+    }
+
+    private function productQuery(?int $userId = null): Builder
+    {
+        return Product::query()
+            ->whereHas('user')
+            ->with(['user', 'images'])
+            ->when($userId !== null, fn (Builder $query) => $query->where('user_id', $userId))
+            ->orderBy('created_at', 'desc');
+    }
+
+    private function mascotaQuery(?int $userId = null): Builder
+    {
+        return Mascota::query()
+            ->whereHas('user')
+            ->with('user')
+            ->when($userId !== null, fn (Builder $query) => $query->where('user_id', $userId))
+            ->orderBy('created_at', 'desc');
+    }
+
+    private function serializePublicProduct(Product $producto): object
+    {
+        return (object) [
+            'id' => $producto->id,
+            'nombre' => $producto->nombre,
+            'descripcion' => $producto->descripcion,
+            'precio' => $producto->precio,
+            'imagen' => $producto->imagen,
+            'user' => $producto->user,
+        ];
+    }
+
+    private function serializeDashboardProduct(Product $producto, bool $includeImages = false): object
+    {
+        return (object) [
+            'id' => $producto->id,
+            'nombre' => $producto->nombre,
+            'descripcion' => $producto->descripcion,
+            'precio' => $producto->precio,
+            'imagen' => $producto->imagen,
+            'user_id' => $producto->user_id,
+            'user' => $producto->user,
+            'tipo' => 'producto',
+            'created_at' => $producto->created_at,
+            'imagenes_existentes' => $includeImages ? $producto->images->pluck('image_path')->toArray() : [],
+        ];
+    }
+
+    private function serializeDashboardMascota(Mascota $mascota): object
+    {
+        return (object) [
+            'id' => $mascota->id,
+            'nombre' => $mascota->nombre,
+            'descripcion' => $mascota->descripcion,
+            'precio' => null,
+            'imagen' => $mascota->imagen,
+            'user_id' => $mascota->user_id,
+            'user' => $mascota->user,
+            'tipo' => 'mascota',
+            'created_at' => $mascota->created_at,
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function uploadProductImages(Request $request): array
+    {
+        $paths = [];
+
+        if (! $request->hasFile('imagenes')) {
+            return $paths;
+        }
+
+        foreach ($request->file('imagenes') as $imagen) {
+            $path = $this->uploadSecurely($imagen, 'productos', 'public');
+
+            if ($path) {
+                $paths[] = $path;
+            }
+        }
+
+        return $paths;
+    }
+
+    /**
+     * @param array<int, string> $paths
+     */
+    private function storeProductImages(Product $product, array $paths, int $startingOrder = 0): void
+    {
+        foreach ($paths as $index => $path) {
+            ProductImage::create([
+                'product_id' => $product->id,
+                'image_path' => $path,
+                'order' => $startingOrder + $index + 1,
+            ]);
+        }
     }
 }

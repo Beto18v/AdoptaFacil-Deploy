@@ -100,10 +100,9 @@ export const generateDonationsReport = (donations: Donation[], user: User) => {
         // --- Pie de Página con Leyenda Mejorada ---
         const pageNumber = `Página ${(data as { pageNumber?: number }).pageNumber || 1} de ${doc.internal.pages.length}`;
 
-        // Solo muestra la leyenda para los donantes (rol 'cliente')
+        // Solo muestra una leyenda informativa para los donantes.
         if (user.role === 'cliente') {
-            const legend =
-                'Certificado de donación para descuento tributario del 25% en renta (Art. 125, Estatuto Tributario). Consulte a su contador.';
+            const legend = 'Reporte informativo de donaciones registrado en AdoptaFácil. No reemplaza un certificado tributario oficial.';
             doc.setFontSize(7.5);
             doc.setTextColor(180); // Un gris más claro
             doc.text(legend, pageWidth / 2, pageHeight - 15, { align: 'center' });

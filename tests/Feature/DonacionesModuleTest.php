@@ -118,9 +118,11 @@ test('ally can import donations through the unified donations controller', funct
                     'amount' => 120000,
                     'created_at' => '2026-03-01',
                     'description' => 'Importada desde Excel',
+                    'donor_email' => 'importada@example.com',
                 ],
                 [
                     'donor_name' => 'Donante histórico',
+                    'donor_email' => 'historico@example.com',
                     'amount' => 80000,
                     'created_at' => '2026-03-02',
                 ],
@@ -139,7 +141,39 @@ test('ally can import donations through the unified donations controller', funct
     $importedDonations = Donation::orderBy('created_at')->get();
 
     expect($importedDonations[0]->shelter_id)->toBe($shelter->id);
-    expect($importedDonations[0]->donor_email)->toBeNull();
-    expect($importedDonations[0]->donor_name)->toBe('Aliado Principal');
+    expect($importedDonations[0]->donor_email)->toBe('importada@example.com');
+    expect($importedDonations[0]->donor_name)->toBe('Donante importado');
     expect($importedDonations[1]->donor_name)->toBe('Donante histórico');
+    expect($importedDonations[1]->donor_email)->toBe('historico@example.com');
+});
+
+test('direct donations persist the selected payment method', function () {
+    $client = User::factory()->create([
+        'email_verified_at' => now(),
+        'role' => 'cliente',
+        'name' => 'Cliente Pagador',
+        'email' => 'pagador@example.com',
+    ]);
+    $ally = User::factory()->create([
+        'email_verified_at' => now(),
+        'role' => 'aliado',
+    ]);
+
+    $shelter = createShelterForDonationTests($ally);
+
+    $response = $this->actingAs($client)
+        ->postJson(route('donaciones.store'), [
+            'donor_name' => $client->name,
+            'donor_email' => $client->email,
+            'amount' => 55000,
+            'description' => 'Aporte con método de pago',
+            'shelter_id' => $shelter->id,
+            'payment_method' => 'pse',
+        ]);
+
+    $response
+        ->assertCreated()
+        ->assertJsonPath('donation.payment_method', 'pse');
+
+    expect(Donation::query()->latest('id')->first()?->payment_method)->toBe('pse');
 });
