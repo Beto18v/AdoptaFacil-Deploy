@@ -1,24 +1,6 @@
 /**
- * Página principal de AdoptaFácil (Landing Page)
- *
- * Esta es la vista principal que ven los visitantes al acceder a la plataforma.
- * Presenta una página atractiva con las principales funcionalidades y contenido destacado:
- *
- * Secciones principales:
- * - Hero Section: Presentación principal con llamada a la acción
- * - Categories Section: Navegación por categorías de mascotas
- * - Pets Section: Últimas 3 mascotas agregadas para adopción
- * - Products Section: Últimos 3 productos de la tienda
- *
- * Funcionalidades:
- * - Responsive design con tema claro/oscuro
- * - Navegación directa a catálogos específicos
- * - Estadísticas dinámicas de mascotas por categoría
- * - Integración con sistema de autenticación
- *
- * @author Equipo AdoptaFácil
- * @version 1.0.0
- * @since 2024
+ * Landing principal de la plataforma.
+ * Reune secciones destacadas, accesos rapidos y contenido inicial del home.
  */
 
 import { Head } from '@inertiajs/react';

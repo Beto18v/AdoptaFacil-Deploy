@@ -9,27 +9,8 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * FavoritosController - Controlador del módulo de sistema de favoritos
- * 
- * Este controlador gestiona todo el sistema de favoritos de mascotas en AdoptaFácil:
- * - Dashboard personal de mascotas favoritas del usuario
- * - Agregar y quitar mascotas de la lista de favoritos
- * - Verificación de estado de favoritos para mascotas específicas
- * - API pública para obtener IDs de favoritos sin autenticación
- * - Gestión de relaciones entre usuarios y mascotas favoritas
- * 
- * Funcionalidades principales:
- * - Vista personalizada de favoritos con información completa
- * - Toggle de favoritos con validación de unicidad
- * - API endpoint para verificar favoritos desde frontend
- * - Eliminación de favoritos con confirmación
- * - Integración con sistema de mascotas e imágenes múltiples
- * - Soporte para usuarios no autenticados (consulta pública)
- * 
- * @author Equipo AdoptaFácil
- * @version 1.0.0
- * @since 2024
- * @package App\Http\Controllers
+ * Controlador del modulo de favoritos.
+ * Gestiona el dashboard, el toggle y las consultas de favoritos por usuario.
  */
 
 class FavoritosController extends Controller

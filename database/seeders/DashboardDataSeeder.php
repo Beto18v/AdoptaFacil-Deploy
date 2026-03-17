@@ -10,13 +10,8 @@ use App\Models\User;
 use Carbon\Carbon;
 
 /**
- * DashboardDataSeeder - Seeder para poblar datos de ejemplo para el dashboard
- *
- * Este seeder crea datos de prueba para las métricas y estadísticas del dashboard:
- * - Donaciones de ejemplo con diferentes montos y fechas
- * - Solicitudes de adopción de ejemplo (si existen mascotas y usuarios)
- *
- * Los datos se crean solo si no existen previamente para evitar duplicados.
+ * Seeder de datos base para el dashboard.
+ * Genera donaciones y solicitudes de ejemplo sin duplicar registros existentes.
  */
 class DashboardDataSeeder extends Seeder
 {

@@ -6,28 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * AuthController - Controlador complementario de autenticación
- * 
- * Este controlador maneja funcionalidades adicionales de autenticación que complementan
- * al sistema principal de Laravel Breeze:
- * - Procesos de login personalizados con validación específica
- * - Redirecciones condicionales según rol de usuario
- * - Manejo de sesiones y regeneración de tokens
- * - Validaciones adicionales para casos especiales
- * - Integración con sistemas de autenticación externa
- * 
- * Funcionalidades principales:
- * - Vista personalizada de login con validaciones específicas
- * - Proceso de autenticación con verificación de credenciales
- * - Regeneración segura de sesiones post-login
- * - Redirección inteligente según contexto del usuario
- * - Manejo de errores de autenticación con feedback específico
- * - Logout con limpieza completa de sesión
- * 
- * @author Equipo AdoptaFácil
- * @version 1.0.0
- * @since 2024
- * @package App\Http\Controllers
+ * Controlador complementario de autenticacion.
+ * Maneja login, logout y redirecciones personalizadas sobre Breeze.
  */
 
 class AuthController extends Controller

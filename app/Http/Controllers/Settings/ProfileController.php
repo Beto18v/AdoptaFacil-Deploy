@@ -14,27 +14,8 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * ProfileController - Controlador de configuración de perfil de usuario
- * 
- * Este controlador maneja la gestión del perfil personal del usuario:
- * - Vista de configuración de perfil con datos actuales
- * - Actualización de información personal (nombre, email, etc.)
- * - Manejo de verificación de email cuando se cambia
- * - Validación de datos mediante Form Request personalizado
- * - Feedback de estado de operaciones
- * 
- * Funcionalidades principales:
- * - Edición de datos personales del usuario
- * - Validación específica para cambios de email
- * - Manejo de usuarios que requieren verificación de email
- * - Actualización segura con validación de permisos
- * - Integración con sistema de notificaciones de estado
- * - Soporte para redirecciones con mensajes de confirmación
- * 
- * @author Equipo AdoptaFácil
- * @version 1.0.0
- * @since 2024
- * @package App\Http\Controllers\Settings
+ * Controlador de configuracion de perfil.
+ * Muestra y actualiza datos personales, avatar y estado de verificacion.
  */
 
 class ProfileController extends Controller

@@ -10,15 +10,8 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\MascotaImage;
 
 /**
- * ShelterSeeder - Seeder para poblar la base de datos con refugios y mascotas de ejemplo
- *
- * Este seeder crea una red de refugios de mascotas distribuidos en diferentes ciudades de Colombia:
- * - Crea usuarios con rol 'aliado' para cada refugio
- * - Genera refugios con información completa (dirección, teléfono, datos bancarios)
- * - Pobla cada refugio con mascotas de diferentes especies y razas
- *
- * Los refugios se crean en ciudades principales con cantidades variables.
- * Cada refugio tiene entre 5-15 mascotas con nombres aleatorios y características diversas.
+ * Seeder de refugios y mascotas asociadas.
+ * Crea aliados, shelters y contenido base para pruebas del ecosistema de adopcion.
  */
 class ShelterSeeder extends Seeder
 {

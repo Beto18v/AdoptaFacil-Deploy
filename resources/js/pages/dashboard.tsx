@@ -1,29 +1,6 @@
 /**
- * Dashboard principal de AdoptaFácil
- *
- * Panel de control administrativo que proporciona una vista general
- * del estado de la plataforma con métricas clave y estadísticas:
- *
- * Métricas principales:
- * - Total de mascotas registradas
- * - Total de adopciones exitosas
- * - Total de donaciones recibidas
- * - Total de usuarios registrados
- *
- * Funcionalidades de análisis:
- * - Comparación con período anterior (% de cambio)
- * - Gráfico de distribución de mascotas por especie
- * - Gráfico de adopciones por mes
- * - Tabla de actividad reciente
- *
- * Componentes utilizados:
- * - StatCard: Tarjetas de estadísticas con indicadores de cambio
- * - Chart: Gráficos interactivos para visualización de datos
- * - RecentTable: Tabla de actividades recientes
- *
- * @author Equipo AdoptaFácil
- * @version 1.0.0
- * @since 2024
+ * Vista principal del dashboard.
+ * Muestra metricas, graficos y actividad reciente para usuarios autenticados.
  */
 
 import ChatbotWidget from '@/components/chatbot-widget';

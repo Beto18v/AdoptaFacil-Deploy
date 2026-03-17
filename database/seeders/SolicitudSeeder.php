@@ -9,14 +9,8 @@ use App\Models\User;
 use App\Models\Mascota;
 
 /**
- * SolicitudSeeder - Seeder para poblar la base de datos con solicitudes de adopción
- *
- * Este seeder crea solicitudes de adopción con diferentes estados y variantes:
- * - Solicitudes pendientes, aprobadas y rechazadas
- * - Datos variados en los formularios
- * - Diferentes tipos de vivienda y situaciones familiares
- *
- * Las solicitudes se crean solo si existen usuarios y mascotas.
+ * Seeder de solicitudes de adopcion.
+ * Crea solicitudes con distintos estados usando usuarios y mascotas disponibles.
  */
 class SolicitudSeeder extends Seeder
 {

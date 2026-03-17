@@ -1,25 +1,6 @@
 /**
- * Componente modal optimizado para registro y edición de mascotas
- *
- * Características principales:
- * - Formulario completo con validación client-side y server-side
- * - Sistema de múltiples imágenes (máximo 3) con preview
- * - Integración con IA para generación automática de descripciones
- * - Cálculo automático de edad basado en fecha de nacimiento
- * - Soporte para edición con carga de datos existentes
- * - Gestión optimizada de archivos e imágenes
- * - Interfaz responsive con feedback visual inmediato
- *
- * Optimizaciones v2.0:
- * - Memoización de funciones costosas
- * - Eliminación de re-renders innecesarios
- * - Gestión eficiente de memoria para previews de imágenes
- * - Validación de tipos robusta con TypeScript
- * - Manejo defensivo de errores de red
- *
- * @author Equipo AdoptaFácil
- * @version 2.0.0 - Optimizado para producción
- * @since 2024
+ * Modal de registro y edicion de mascotas.
+ * Gestiona formulario, imagenes y ayudas de captura para aliados.
  */
 
 // resources/js/pages/Dashboard/VerMascotasProductos/components/registrar-mascota.tsx

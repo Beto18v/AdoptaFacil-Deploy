@@ -9,14 +9,8 @@ use App\Models\Mascota;
 use App\Models\User;
 
 /**
- * FavoritoSeeder - Seeder para poblar la base de datos con mascotas favoritas
- *
- * Este seeder crea favoritos aleatorios para las mascotas existentes:
- * - Distribución realista de favoritos entre usuarios
- * - Evita favoritos duplicados del mismo usuario en la misma mascota
- * - Diferentes usuarios marcando diferentes mascotas como favoritas
- *
- * Los favoritos se crean solo si existen mascotas y usuarios.
+ * Seeder de favoritos de mascotas.
+ * Relaciona usuarios y mascotas de forma aleatoria evitando duplicados.
  */
 class FavoritoSeeder extends Seeder
 {

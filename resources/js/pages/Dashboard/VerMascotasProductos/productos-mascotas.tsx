@@ -1,27 +1,6 @@
 /**
- * Dashboard unificado de productos y mascotas para gestión de aliados comerciales
- *
- * Este componente central permite a los aliados gestionar tanto sus productos como mascotas
- * desde una interfaz unificada, proporcionando herramientas completas de CRUD.
- *
- * Funcionalidades principales:
- * - Visualización en grid responsivo de productos y mascotas
- * - Sistema de filtros por tipo y búsqueda por nombre
- * - Creación y edición modal de mascotas con soporte de múltiples imágenes
- * - Creación y edición modal de productos con gestión de stock
- * - Eliminación con confirmación de elementos
- * - Sistema de mensajes de feedback para el usuario
- * - Integración con formularios de adopción automáticos
- *
- * Optimizaciones implementadas:
- * - Gestión eficiente de estado con useState memoizado
- * - Carga lazy de datos de edición bajo demanda
- * - Validación client-side antes del envío
- * - Manejo robusto de errores con fallbacks
- *
- * @author Equipo AdoptaFácil
- * @version 2.0.0 - Optimizado para producción
- * @since 2024
+ * Panel unificado de productos y mascotas.
+ * Centraliza filtros, listados y acciones CRUD para aliados.
  */
 
 // Dashboard unificado: productos y mascotas para gestión de aliados

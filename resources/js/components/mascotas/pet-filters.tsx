@@ -1,17 +1,8 @@
 import React, { useEffect, useState } from 'react';
 
 /**
- * Componente de filtros para la página de mascotas
- *
- * Proporciona filtros avanzados con diseño según PALETA de AdoptaFácil:
- * - Filtro de búsqueda por texto
- * - Filtros por especie, ciudad, edad y género
- * - Píldoras de filtros activos con colores específicos
- * - Diseño responsive con elementos decorativos
- * - Optimizado para cambios rápidos de tema
- *
- * @author Equipo AdoptaFácil
- * @version 1.1.0 - Optimizado para tema responsive
+ * Filtros del catalogo de mascotas.
+ * Coordina busqueda, especies y estados visibles desde la vista publica.
  */
 
 interface PetFiltersProps {

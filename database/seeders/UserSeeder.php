@@ -7,14 +7,8 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * UserSeeder - Seeder para poblar la base de datos con usuarios de ejemplo
- *
- * Este seeder crea usuarios predeterminados para cada rol principal del sistema:
- * - Admin: Usuario administrador con acceso completo al sistema
- * - Aliado: Usuario representante de refugios o aliados de la plataforma
- * - Cliente: Usuario adoptante o comprador en la plataforma
- *
- * Los usuarios se crean solo si no existen previamente para evitar duplicados.
+ * Seeder de usuarios base del sistema.
+ * Crea cuentas por rol y evita duplicados cuando ya existen registros equivalentes.
  */
 class UserSeeder extends Seeder
 {

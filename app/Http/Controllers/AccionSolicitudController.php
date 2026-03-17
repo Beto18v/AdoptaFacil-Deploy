@@ -7,27 +7,8 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Solicitud;
 
 /**
- * AccionSolicitudController - Controlador de acciones específicas sobre solicitudes
- * 
- * Este controlador maneja las acciones puntuales que se pueden realizar sobre solicitudes:
- * - Aprobación de solicitudes por parte del dueño de la mascota
- * - Rechazo de solicitudes con motivo específico
- * - Cancelación de solicitudes por parte del adoptante
- * - Finalización del proceso de adopción
- * - Cambios de estado con validación de permisos
- * 
- * Funcionalidades principales:
- * - Gestión del flujo de estados de solicitudes
- * - Validación de autorización para cada acción
- * - Registro de motivos en rechazos
- * - Notificaciones automáticas a las partes involucradas
- * - Auditoría de cambios de estado
- * - Integración con sistema de historial
- * 
- * @author Equipo AdoptaFácil
- * @version 1.0.0
- * @since 2024
- * @package App\Http\Controllers
+ * Controlador de acciones sobre solicitudes.
+ * Administra cambios de estado como aprobar, rechazar, cancelar y finalizar.
  */
 class AccionSolicitudController extends Controller
 {

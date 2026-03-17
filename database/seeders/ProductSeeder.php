@@ -9,16 +9,8 @@ use App\Models\User;
 use App\Models\ProductImage;
 
 /**
- * ProductSeeder - Seeder para poblar la base de datos con productos de ejemplo
- *
- * Este seeder crea productos para la tienda en línea de la plataforma:
- * - Alimentos para mascotas (perros y gatos)
- * - Accesorios y juguetes
- * - Productos de higiene y cuidado
- * - Medicamentos y suplementos
- *
- * Los productos se crean asociados a usuarios con rol 'aliado'.
- * Se crean solo si no existen previamente para evitar duplicados.
+ * Seeder de productos del marketplace.
+ * Genera articulos de ejemplo vinculados a usuarios aliados existentes.
  */
 class ProductSeeder extends Seeder
 {

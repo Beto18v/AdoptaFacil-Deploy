@@ -11,27 +11,8 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 /**
- * SolicitudesController - Controlador principal del módulo de solicitudes de adopción
- * 
- * Este controlador gestiona todo el proceso de solicitudes de adopción en AdoptaFácil:
- * - Dashboard de solicitudes diferenciado por rol de usuario
- * - Visualización de solicitudes recibidas para dueños de mascotas
- * - Gestión de solicitudes enviadas para adoptantes
- * - Creación de nuevas solicitudes con validación completa
- * - Seguimiento del estado y progreso de cada solicitud
- * 
- * Funcionalidades principales:
- * - Vista personalizada según rol (aliado/dueño vs cliente/adoptante)
- * - CRUD completo de solicitudes con autorización
- * - Sistema de estados (pendiente, aprobada, rechazada, cancelada)
- * - Integración con sistema de notificaciones
- * - Validación de datos del adoptante y mascota
- * - Prevención de solicitudes duplicadas
- * 
- * @author Equipo AdoptaFácil
- * @version 1.0.0
- * @since 2024
- * @package App\Http\Controllers
+ * Controlador del modulo de solicitudes.
+ * Maneja vistas, creacion y seguimiento de solicitudes de adopcion por rol.
  */
 
 class SolicitudesController extends Controller

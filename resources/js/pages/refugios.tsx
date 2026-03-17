@@ -1,32 +1,6 @@
 /**
- * Página del directorio público de refugios
- *
- * Esta vista presenta el directorio completo de refugios de animales registrados
- * en AdoptaFácil, permitiendo a los usuarios conocer y contactar organizaciones:
- *
- * Características principales:
- * - Directorio completo de refugios verificados
- * - Información detallada de cada refugio (nombre, ubicación, contacto)
- * - Estadísticas de donaciones recibidas por refugio
- * - Sistema de ordenamiento por popularidad y donaciones
- * - Diseño responsive con tarjetas informativas
- *
- * Información mostrada por refugio:
- * - Nombre y descripción de la organización
- * - Ubicación geográfica y datos de contacto
- * - Total de donaciones recibidas
- * - Enlaces a redes sociales y sitio web
- * - Información del usuario responsable
- *
- * Funcionalidades:
- * - Vista en grid adaptable según tamaño de pantalla
- * - Hero section con información general
- * - Estado de carga para refugios sin datos
- * - Integración con sistema de donaciones
- *
- * @author Equipo AdoptaFácil
- * @version 1.0.0
- * @since 2024
+ * Vista publica del directorio de refugios.
+ * Muestra shelters, contacto y resumen de donaciones en formato listado.
  */
 
 import ChatbotWidget from '@/components/chatbot-widget';

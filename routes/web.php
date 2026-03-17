@@ -1,24 +1,8 @@
 <?php
 
 /**
- * Archivo de rutas principales de AdoptaFácil
- * 
- * Este archivo define todas las rutas web de la aplicación organizadas por módulos:
- * - Rutas públicas (landing, catálogos, refugios)
- * - Rutas de comunidad y funciones sociales  
- * - Rutas protegidas del dashboard para usuarios autenticados
- * - Rutas de gestión de contenido (CRUD mascotas/productos)
- * - Sistema de favoritos y adopciones
- * 
- * Optimizaciones v2.0:
- * - Agrupación lógica de rutas por funcionalidad
- * - Documentación completa de cada endpoint
- * - Eliminación de rutas duplicadas o innecesarias
- * - Middleware optimizado para mejor rendimiento
- * 
- * @author Equipo AdoptaFácil
- * @version 2.0.0 - Optimizado para producción
- * @since 2024
+ * Rutas web de la aplicacion.
+ * Agrupa endpoints publicos, sociales y areas autenticadas del dashboard.
  */
 
 use Illuminate\Http\Request;

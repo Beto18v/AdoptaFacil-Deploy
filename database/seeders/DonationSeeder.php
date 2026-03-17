@@ -8,15 +8,8 @@ use App\Models\Donation;
 use App\Models\Shelter;
 
 /**
- * DonationSeeder - Seeder para poblar la base de datos con donaciones de ejemplo
- *
- * Este seeder crea donaciones de ejemplo para los refugios existentes:
- * - Donaciones de usuarios individuales
- * - Donaciones con diferentes montos
- * - Descripciones variadas
- * - Distribución entre diferentes refugios
- *
- * Las donaciones se crean solo si existen refugios en la base de datos.
+ * Seeder de donaciones de ejemplo.
+ * Crea registros base para refugios existentes con montos y descripciones variadas.
  */
 class DonationSeeder extends Seeder
 {

@@ -9,15 +9,8 @@ use App\Models\Post;
 use App\Models\User;
 
 /**
- * CommentSeeder - Seeder para poblar la base de datos con comentarios en posts
- *
- * Este seeder crea comentarios de ejemplo para las publicaciones existentes:
- * - Comentarios positivos y de apoyo
- * - Preguntas sobre las publicaciones
- * - Comentarios de agradecimiento
- * - Interacciones entre usuarios
- *
- * Los comentarios se distribuyen aleatoriamente entre los posts y usuarios existentes.
+ * Seeder de comentarios para publicaciones.
+ * Distribuye interacciones de ejemplo entre posts y usuarios existentes.
  */
 class CommentSeeder extends Seeder
 {

@@ -1,33 +1,6 @@
 /**
- * Página principal de la comunidad de AdoptaFácil
- *
- * Esta vista constituye el centro social de la plataforma donde los usuarios
- * pueden interactuar, compartir experiencias y crear una comunidad sólida:
- *
- * Características principales:
- * - Feed principal con publicaciones de la comunidad
- * - Sistema de creación de posts con texto e imágenes
- * - Interacciones sociales (likes, comentarios, compartir)
- * - Filtros para organizar el contenido por tipo
- * - Trending topics y temas populares
- *
- * Funcionalidades del feed:
- * - Carga paginada de publicaciones ordenadas por fecha
- * - Sistema de likes en tiempo real
- * - Comentarios anidados en publicaciones
- * - Filtrado por tipo de contenido (historias, consejos, preguntas)
- * - Búsqueda de posts por contenido
- *
- * Interacciones disponibles:
- * - Crear nuevas publicaciones con imágenes
- * - Dar like/unlike a publicaciones
- * - Comentar y responder comentarios
- * - Compartir posts en redes sociales
- * - Reportar contenido inapropiado
- *
- * @author Equipo AdoptaFácil
- * @version 1.0.0
- * @since 2024
+ * Vista principal de la comunidad.
+ * Renderiza el feed social y las interacciones principales entre usuarios.
  */
 
 import ChatbotWidget from '@/components/chatbot-widget';

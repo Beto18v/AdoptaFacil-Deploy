@@ -1,13 +1,8 @@
 import ParticlesHero from '../particles-hero';
 
 /**
- * Componente Hero optimizado para la página de mascotas
- *
- * Proporciona una introducción visual atractiva al catálogo de mascotas
- * disponibles para adopción con diseño responsive y accesible.
- *
- * @author Equipo AdoptaFácil
- * @version 2.0.0 - Actualizado según PALETA
+ * Hero de la pagina de mascotas.
+ * Introduce el catalogo publico con apoyo visual y mensaje principal.
  */
 export default function PetHero() {
     return (

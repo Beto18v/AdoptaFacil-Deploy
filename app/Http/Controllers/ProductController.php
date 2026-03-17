@@ -15,23 +15,8 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Inertia\Inertia;
 
 /**
- * ProductController - Controlador principal para gestión de productos
- * 
- * Este controlador maneja todas las operaciones CRUD de productos en AdoptaFácil:
- * - Vista pública de productos para visitantes
- * - Dashboard unificado para usuarios autenticados (productos + mascotas)
- * - Creación de productos con múltiples imágenes (hasta 3)
- * - Edición y actualización de productos existentes
- * - Eliminación segura con verificación de permisos
- * 
- * Funcionalidades principales:
- * - Sistema de múltiples imágenes por producto
- * - Validación de datos mediante Form Requests
- * - Autorización basada en políticas (Policy)
- * - Integración con Inertia.js para SPA
- * 
- * @author Equipo AdoptaFácil
- * @version 1.0.0
+ * Controlador del modulo de productos.
+ * Gestiona el catalogo publico y el CRUD de productos para usuarios autorizados.
  */
 class ProductController extends Controller
 {

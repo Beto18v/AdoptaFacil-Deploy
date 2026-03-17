@@ -9,22 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Carbon\Carbon;
 
 /**
- * Modelo Mascota - Representa mascotas disponibles para adopción
- * 
- * Este modelo gestiona toda la información de mascotas en AdoptaFácil:
- * - Datos básicos (nombre, especie, raza, edad)
- * - Información de ubicación y contacto
- * - Sistema de múltiples imágenes
- * - Cálculo automático de edad basado en fecha de nacimiento
- * - Relaciones con usuario propietario
- * 
- * Características especiales:
- * - Actualización automática de edad al guardar
- * - Soporte para múltiples imágenes por mascota
- * - Validación de datos mediante Form Requests
- * 
- * @author Equipo AdoptaFácil
- * @version 1.0.0
+ * Modelo de mascotas publicadas.
+ * Centraliza atributos, relaciones y calculos derivados como la edad.
  */
 class Mascota extends Model
 {

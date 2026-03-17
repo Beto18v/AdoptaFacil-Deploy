@@ -8,16 +8,8 @@ use App\Models\Post;
 use App\Models\User;
 
 /**
- * PostSeeder - Seeder para poblar la base de datos con publicaciones de ejemplo
- *
- * Este seeder crea publicaciones de ejemplo para la sección de comunidad:
- * - Campañas de esterilización y adopción
- * - Noticias sobre la plataforma
- * - Consejos para el cuidado de mascotas
- * - Solicitudes de ayuda para mascotas
- *
- * Las publicaciones se crean solo si existen usuarios en la base de datos.
- * Cada publicación incluye contenido, categoría, likes y comentarios de ejemplo.
+ * Seeder de publicaciones para comunidad.
+ * Crea posts de ejemplo y asume usuarios disponibles para asociarlos.
  */
 class PostSeeder extends Seeder
 {

@@ -1,13 +1,8 @@
 import ParticlesHero from '../particles-hero';
 
 /**
- * Componente Hero optimizado para la página de comunidad
- *
- * Proporciona una introducción visual atractiva al centro social de AdoptaFácil
- * donde los usuarios pueden interactuar y compartir experiencias.
- *
- * @author Equipo AdoptaFácil
- * @version 2.0.0 - Actualizado según PALETA
+ * Hero de la pagina de comunidad.
+ * Presenta la seccion social con mensaje principal y apoyo visual.
  */
 export default function ComunityHero() {
     return (

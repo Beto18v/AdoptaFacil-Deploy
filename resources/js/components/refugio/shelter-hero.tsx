@@ -1,13 +1,8 @@
 import ParticlesHero from '../particles-hero';
 
 /**
- * Componente Hero optimizado para la página de refugios
- *
- * Proporciona una introducción visual atractiva al directorio de refugios
- * y organizaciones de rescate animal con diseño responsive y accesible.
- *
- * @author Equipo AdoptaFácil
- * @version 2.0.0 - Actualizado según PALETA
+ * Hero de la pagina de refugios.
+ * Introduce el directorio publico con contexto visual de la seccion.
  */
 export default function ShelterHero() {
     return (

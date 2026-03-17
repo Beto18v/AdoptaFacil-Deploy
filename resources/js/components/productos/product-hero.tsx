@@ -1,13 +1,8 @@
 import ParticlesHero from '../particles-hero';
 
 /**
- * Componente Hero optimizado para la página de productos
- *
- * Proporciona una introducción visual atractiva al catálogo de productos
- * del marketplace de AdoptaFácil con diseño responsive y accesible.
- *
- * @author Equipo AdoptaFácil
- * @version 2.0.0 - Corregido y optimizado
+ * Hero de la pagina de productos.
+ * Presenta el marketplace con mensaje principal y apoyo visual.
  */
 export default function ProductHero() {
     return (

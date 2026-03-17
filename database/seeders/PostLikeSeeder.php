@@ -9,14 +9,8 @@ use App\Models\Post;
 use App\Models\User;
 
 /**
- * PostLikeSeeder - Seeder para poblar la base de datos con likes en posts
- *
- * Este seeder crea likes aleatorios para las publicaciones existentes:
- * - Distribución realista de likes entre posts
- * - Evita likes duplicados del mismo usuario en el mismo post
- * - Likes de diferentes usuarios en diferentes posts
- *
- * Los likes se crean solo si existen posts y usuarios.
+ * Seeder de likes para publicaciones.
+ * Asigna interacciones aleatorias entre usuarios y posts sin repetir combinaciones.
  */
 class PostLikeSeeder extends Seeder
 {
