@@ -326,17 +326,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 */
 
 // Rutas personalizadas para recuperación de contraseña (React/Inertia)
-Route::middleware('guest')->group(function () {
-    Route::get('/auth/forgot-password', function () {
-        return Inertia::render('auth/forgot-password');
-    })->name('auth.forgot-password');
-
-    Route::get('/auth/reset-password/{email?}', function (Request $request, $email = null) {
-        return Inertia::render('auth/reset-password', [
-            'email' => $email
-        ]);
-    })->name('auth.reset-password');
-});
 
 /*
 |--------------------------------------------------------------------------

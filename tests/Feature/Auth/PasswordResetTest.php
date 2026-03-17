@@ -1,8 +1,10 @@
 <?php
 
+use App\Mail\PasswordResetMail;
 use App\Models\User;
-use Illuminate\Auth\Notifications\ResetPassword;
-use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 
 uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
 
@@ -13,77 +15,118 @@ test('reset password link screen can be rendered', function () {
 });
 
 test('reset password link can be requested', function () {
-    Notification::fake();
+    Mail::fake();
 
     $user = User::factory()->create();
 
-    $this->post('/forgot-password', ['email' => $user->email]);
+    $response = $this->post('/forgot-password', ['email' => $user->email]);
 
-    Notification::assertSentTo($user, ResetPassword::class);
+    $response
+        ->assertRedirect()
+        ->assertSessionHas('status', 'Te enviamos un enlace para restablecer tu contraseña.');
+
+    Mail::assertSent(PasswordResetMail::class, function (PasswordResetMail $mail) use ($user) {
+        return $mail->hasTo($user->email);
+    });
 });
 
 test('reset password screen can be rendered', function () {
-    Notification::fake();
+    Mail::fake();
 
     $user = User::factory()->create();
 
     $this->post('/forgot-password', ['email' => $user->email]);
 
-    Notification::assertSentTo($user, ResetPassword::class, function ($notification) {
-        $response = $this->get('/reset-password/'.$notification->token);
+    $resetUrl = null;
 
-        $response->assertStatus(200);
+    Mail::assertSent(PasswordResetMail::class, function (PasswordResetMail $mail) use ($user, &$resetUrl) {
+        if (! $mail->hasTo($user->email)) {
+            return false;
+        }
+
+        $resetUrl = $mail->resetUrl;
 
         return true;
     });
+
+    expect($resetUrl)->not->toBeNull();
+
+    $path = parse_url($resetUrl, PHP_URL_PATH);
+    $query = parse_url($resetUrl, PHP_URL_QUERY);
+
+    $response = $this->get($path.($query ? '?'.$query : ''));
+
+    $response->assertStatus(200);
 });
 
 test('password can be reset with valid token', function () {
-    Notification::fake();
+    Mail::fake();
 
     $user = User::factory()->create();
 
     $this->post('/forgot-password', ['email' => $user->email]);
 
-    Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user) {
-        $response = $this->post('/reset-password', [
-            'token' => $notification->token,
-            'email' => $user->email,
-            'password' => 'password',
-            'password_confirmation' => 'password',
-        ]);
+    $resetUrl = null;
 
-        $response
-            ->assertSessionHasNoErrors()
-            ->assertRedirect(route('login'));
+    Mail::assertSent(PasswordResetMail::class, function (PasswordResetMail $mail) use ($user, &$resetUrl) {
+        if (! $mail->hasTo($user->email)) {
+            return false;
+        }
+
+        $resetUrl = $mail->resetUrl;
 
         return true;
     });
+
+    expect($resetUrl)->not->toBeNull();
+
+    $path = parse_url($resetUrl, PHP_URL_PATH);
+    $query = parse_url($resetUrl, PHP_URL_QUERY);
+
+    parse_str($query ?? '', $queryParams);
+
+    $response = $this->post('/reset-password', [
+        'token' => Str::afterLast($path, '/'),
+        'email' => $queryParams['email'] ?? $user->email,
+        'password' => 'NuevaClave123!',
+        'password_confirmation' => 'NuevaClave123!',
+    ]);
+
+    $response
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('login'));
+
+    expect(Hash::check('NuevaClave123!', $user->fresh()->password))->toBeTrue();
 });
 
-test('forgot password returns same response for existing and non-existing email', function () {
-    $user = User::factory()->create();
-    
-    $response1 = $this->post('/forgot-password', ['email' => $user->email]);
-    $response2 = $this->post('/forgot-password', ['email' => 'nonexistent@example.com']);
+test('forgot password requires an existing email', function () {
+    Mail::fake();
 
-    $response1->assertSessionHas('status', __('A reset link will be sent if the account exists.'));
-    $response2->assertSessionHas('status', __('A reset link will be sent if the account exists.'));
-    
-    $response1->assertRedirect();
-    $response2->assertRedirect();
+    $response = $this->from('/forgot-password')->post('/forgot-password', [
+        'email' => 'nonexistent@example.com',
+    ]);
+
+    $response
+        ->assertRedirect('/forgot-password')
+        ->assertSessionHasErrors(['email']);
+
+    Mail::assertNothingSent();
 });
 
 test('password reset link request is throttled', function () {
-    $email = 'test@example.com';
-    
-    // Ensure we are guest
+    Mail::fake();
+
+    $user = User::factory()->create([
+        'email' => 'test@example.com',
+    ]);
+
     auth()->logout();
-    
+
     for ($i = 0; $i < 5; $i++) {
-        $this->post('/forgot-password', ['email' => $email]);
+        $this->post('/forgot-password', ['email' => $user->email]);
     }
-    
-    $response = $this->post('/forgot-password', ['email' => $email]);
+
+    $response = $this->post('/forgot-password', ['email' => $user->email]);
+
     $response->assertStatus(429);
 });
