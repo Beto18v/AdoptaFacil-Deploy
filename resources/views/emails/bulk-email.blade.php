@@ -9,7 +9,8 @@
 
 <body style="margin:0; padding:0; background-color:#f5f5f5; font-family:Arial, Helvetica, sans-serif; color:#111827;">
     @php
-        $greetingName = $recipientName ?: ($user->name ?? null);
+    $greetingName = trim((string) ($recipientName ?: ($user->name ?? '')));
+    $greetingText = $greetingName !== '' ? "Hola {$greetingName}," : 'Hola comunidad,';
     @endphp
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f5f5; padding:24px 12px;">
         <tr>
@@ -22,12 +23,7 @@
                     </tr>
                     <tr>
                         <td style="font-size:24px; font-weight:700; line-height:1.3; padding-bottom:16px;">
-                            Hola{{ $greetingName ? ' ' . $greetingName : '' }},
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="font-size:16px; line-height:1.6; padding-bottom:12px;">
-                            {{ $subjectLine }}
+                            {{ $greetingText }}
                         </td>
                     </tr>
                     <tr>
@@ -45,11 +41,6 @@
                             <a href="{{ url('/') }}" style="display:inline-block; background:#16a34a; color:#ffffff; text-decoration:none; font-size:16px; font-weight:600; padding:12px 20px; border-radius:6px;">
                                 Visitar {{ config('app.name') }}
                             </a>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="font-size:14px; line-height:1.6; color:#6b7280;">
-                            Este mensaje fue enviado por el equipo de {{ config('app.name') }}.
                         </td>
                     </tr>
                 </table>

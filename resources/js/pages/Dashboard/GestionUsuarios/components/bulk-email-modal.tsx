@@ -60,14 +60,8 @@ const buildBulkEmailPreview = (subject: string, description: string) => {
                             </tr>
                             <tr>
                                 <td style="font-size:24px; font-weight:700; line-height:1.3; padding-bottom:16px;">
-                                    Hola,
+                                    Hola comunidad,
                                 </td>
-                            </tr>
-                            <tr>
-                                <td style="font-size:16px; line-height:1.6; padding-bottom:12px;">
-                                    ${safeSubject}
-                                </td>
-                            </tr>
                             <tr>
                                 <td style="font-size:16px; line-height:1.6; padding-bottom:16px;">
                                     ${safeDescription}
@@ -88,11 +82,6 @@ const buildBulkEmailPreview = (subject: string, description: string) => {
                                     <a href="${appUrl}" style="display:inline-block; background:#16a34a; color:#ffffff; text-decoration:none; font-size:16px; font-weight:600; padding:12px 20px; border-radius:6px;">
                                         Visitar AdoptaFacil
                                     </a>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style="font-size:14px; line-height:1.6; color:#6b7280;">
-                                    Este mensaje fue enviado por el equipo de AdoptaFacil.
                                 </td>
                             </tr>
                         </table>
