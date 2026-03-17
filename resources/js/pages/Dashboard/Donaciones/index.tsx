@@ -23,10 +23,11 @@ const formatCurrency = (amount: string | number | bigint) => {
 
 type DonationType = {
     id: number;
-    shelter?: { name?: string };
-    donor_name?: string;
+    shelter?: { id: number; name?: string } | null;
+    donor_name: string;
+    donor_email?: string | null;
     amount: number;
-    created_at: Date;
+    created_at: string;
     description?: string;
 };
 
@@ -315,7 +316,7 @@ export default function DonationsSummary() {
 
     const stats = {
         totalAmount: donations.reduce((acc: number, curr: DonationType) => acc + parseFloat(curr.amount.toString()), 0),
-        donorsCount: new Set(donations.map((d: DonationType) => (d as unknown as { donor_email: string }).donor_email)).size,
+        donorsCount: new Set(donations.map((d: DonationType) => d.donor_email).filter((email): email is string => Boolean(email))).size,
         donationsCount: donations.length,
     };
 
@@ -323,14 +324,20 @@ export default function DonationsSummary() {
         if (donations.length === 0) {
             return;
         }
-        const reportDonations = donations as unknown as {
+        const reportDonations: {
             id: number;
             donor_name: string;
-            amount: string;
+            amount: string | number;
             created_at: string;
             shelter?: { name: string };
-        }[];
-        const reportUser = user as unknown as { name: string; role: string; shelter?: { name: string } };
+        }[] = donations.map((donation) => ({
+            id: donation.id,
+            donor_name: donation.donor_name,
+            amount: donation.amount,
+            created_at: donation.created_at,
+            shelter: donation.shelter?.name ? { name: donation.shelter.name } : undefined,
+        }));
+        const reportUser = user as { name: string; role: string; shelter?: { name: string } };
         generateDonationsReport(reportDonations as never, reportUser as never);
     };
 

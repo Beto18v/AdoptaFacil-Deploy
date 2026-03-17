@@ -157,7 +157,7 @@ export function ExcelImportComponent({ onImportSuccess }: ExcelImportComponentPr
         setError(null);
 
         try {
-            const response = await fetch('/donaciones/import', {
+            const response = await fetch(route('donaciones.import'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
