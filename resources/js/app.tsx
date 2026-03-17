@@ -27,7 +27,7 @@ export async function refreshCsrfToken() {
     if (meta) meta.setAttribute('content', data.csrf_token);
 }
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const appName = import.meta.env.VITE_APP_NAME || 'Adoptafacil';
 
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,
