@@ -39,9 +39,8 @@ import TrendingTopics from '@/components/comunidad/trending-topics';
 import Footer from '@/components/landing/footer';
 import Header from '@/components/landing/header';
 import { ThemeSwitcher } from '@/components/theme-switcher';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useToastMessage } from '@/lib/toast';
 import { Head } from '@inertiajs/react';
-import { CheckCircle, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface User {
@@ -124,8 +123,10 @@ const samplePosts = [
 export default function Comunidad({ auth, posts: initialPosts, flash }: ComunidadProps) {
     const [posts, setPosts] = useState<Post[]>(initialPosts || samplePosts);
     const [filteredPosts, setFilteredPosts] = useState<Post[]>(initialPosts || samplePosts);
-    const [showFlash, setShowFlash] = useState(true);
     const user = auth?.user;
+
+    useToastMessage(flash?.success, 'success');
+    useToastMessage(flash?.error, 'error');
 
     const handlePostDelete = (postId: number) => {
         setPosts((prevPosts) => prevPosts.filter((post) => post.id !== postId));
@@ -175,16 +176,6 @@ export default function Comunidad({ auth, posts: initialPosts, flash }: Comunida
         setFilteredPosts(posts);
     }, [posts]);
 
-    // Ocultar mensaje flash después de 5 segundos
-    useEffect(() => {
-        if (flash?.success || flash?.error) {
-            const timer = setTimeout(() => {
-                setShowFlash(false);
-            }, 5000);
-            return () => clearTimeout(timer);
-        }
-    }, [flash]);
-
     return (
         <div className="flex min-h-screen flex-col bg-white dark:bg-gray-900">
             <Head title="Comunidad" />
@@ -213,21 +204,6 @@ export default function Comunidad({ auth, posts: initialPosts, flash }: Comunida
 
                             {/* Feed de publicaciones (6 de 12 columnas, el área central) */}
                             <section className="space-y-8 lg:col-span-6">
-                                {/* Mensajes Flash */}
-                                {showFlash && flash?.success && (
-                                    <Alert className="border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-900/50 dark:text-green-200">
-                                        <CheckCircle className="h-4 w-4" />
-                                        <AlertDescription>{flash.success}</AlertDescription>
-                                    </Alert>
-                                )}
-
-                                {showFlash && flash?.error && (
-                                    <Alert className="border-red-200 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-900/50 dark:text-red-200">
-                                        <XCircle className="h-4 w-4" />
-                                        <AlertDescription>{flash.error}</AlertDescription>
-                                    </Alert>
-                                )}
-
                                 <CreatePost user={user} onPostCreated={handlePostCreated} />
 
                                 <div className="space-y-6">

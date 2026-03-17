@@ -4,6 +4,7 @@ import { ThemeSwitcher } from '@/components/theme-switcher';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useToastMessage } from '@/lib/toast';
 import { Head, Link, router } from '@inertiajs/react';
 import { Eye, EyeOff, LoaderCircle } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
@@ -33,6 +34,9 @@ export default function ResetPassword({ email }: ResetPasswordProps) {
     const [message, setMessage] = useState<string>('');
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+    useToastMessage(message, 'success');
+    useToastMessage(errors.general, 'error');
 
     const submit: FormEventHandler = async (e) => {
         e.preventDefault();
@@ -139,18 +143,6 @@ export default function ResetPassword({ email }: ResetPasswordProps) {
                     {/* Línea decorativa */}
                     <div className="mx-auto mt-6 h-1 w-24 rounded-full bg-gradient-to-r from-transparent via-blue-500/60 to-transparent" />
                 </div>
-
-                {/* Mensajes de éxito o error */}
-                {message && (
-                    <div className="mb-6 rounded-xl border border-green-200 bg-green-100 p-4 text-center text-sm font-semibold text-green-700 dark:border-green-800 dark:bg-green-900/30 dark:text-green-300">
-                        {message}
-                    </div>
-                )}
-                {errors.general && (
-                    <div className="mb-6 rounded-xl border border-red-200 bg-red-100 p-4 text-center text-sm font-semibold text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300">
-                        {errors.general}
-                    </div>
-                )}
 
                 <form className="relative z-10 space-y-6" onSubmit={submit}>
                     <div className="space-y-6">

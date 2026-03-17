@@ -27,10 +27,11 @@
 // Dashboard unificado: productos y mascotas para gestión de aliados
 import ChatbotWidget from '@/components/chatbot-widget';
 import { ThemeSwitcher } from '@/components/theme-switcher';
+import { showToast } from '@/lib/toast';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import ProductoMascotaCard, { type CardItem } from './components/producto-mascota-card';
 import RegistrarMascota from './components/registrar-mascota';
 import RegistrarProducto from './components/registrar-producto';
@@ -80,11 +81,9 @@ export default function ProductosMascotas() {
     const {
         items = [],
         auth,
-        success,
     } = page.props as unknown as {
         items: CardItem[];
         auth: { user?: { role?: string } };
-        success?: string;
     };
     const itemsTyped = items;
     const esAliado = auth.user?.role === 'aliado';
@@ -102,7 +101,6 @@ export default function ProductosMascotas() {
     const [isProductoModalOpen, setProductoModalOpen] = useState(false);
     const [busqueda, setBusqueda] = useState('');
     const [filtro, setFiltro] = useState<'todo' | 'producto' | 'mascota'>('todo');
-    const [mensaje, setMensaje] = useState<string | null>(null);
 
     // Estados para edición
     const [mascotaEditando, setMascotaEditando] = useState<CardItem | null>(null);
@@ -113,12 +111,6 @@ export default function ProductosMascotas() {
      * Effect para mostrar mensajes de éxito provenientes del backend
      * Se ejecuta cuando cambia la prop 'success'
      */
-    useEffect(() => {
-        if (success) {
-            mostrarMensaje(success as string);
-        }
-    }, [success]);
-
     /**
      * Función de filtrado optimizada para buscar por nombre y tipo
      * Implementa búsqueda case-insensitive y filtros combinados
@@ -132,8 +124,9 @@ export default function ProductosMascotas() {
      * @param msg - Mensaje a mostrar
      */
     const mostrarMensaje = (msg: string) => {
-        setMensaje(msg);
-        setTimeout(() => setMensaje(null), 4000);
+        if (/error|no se pudo/i.test(msg)) {
+            showToast(msg, 'error');
+        }
     };
 
     /**
@@ -157,7 +150,6 @@ export default function ProductosMascotas() {
     const handleMascotaRegistrada = () => {
         cerrarModalMascota();
         // Recargar la página para mostrar la nueva mascota
-        router.reload({ only: ['items'] });
     };
 
     /**
@@ -248,7 +240,6 @@ export default function ProductosMascotas() {
             const deleteUrl = item.tipo === 'producto' ? `/productos/${item.id}` : `/mascotas/${item.id}`;
             router.delete(deleteUrl, {
                 preserveScroll: true,
-                onSuccess: () => mostrarMensaje(`"${item.nombre}" ha sido eliminado.`),
                 onError: () => {
                     mostrarMensaje('No se pudo eliminar el ítem.');
                 },
@@ -290,20 +281,6 @@ export default function ProductosMascotas() {
                     </div>
 
                     {/* Mensaje de éxito */}
-                    {mensaje && (
-                        <div className="animate-fade-in relative overflow-hidden rounded-3xl bg-white/95 p-6 text-center shadow-2xl backdrop-blur-sm transition-all duration-500 dark:bg-gray-800/95">
-                            <div className="absolute -top-8 -right-8 h-24 w-24 rounded-full bg-gradient-to-br from-green-500/20 to-transparent"></div>
-                            <div className="absolute -bottom-4 -left-4 h-16 w-16 rounded-full bg-gradient-to-tr from-green-300/10 to-transparent"></div>
-                            <div className="relative">
-                                <div className="mx-auto mb-3 w-fit rounded-2xl bg-gradient-to-r from-green-500 to-green-700 p-3 shadow-xl">
-                                    <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                </div>
-                                <p className="text-lg font-medium text-gray-800 dark:text-white">{mensaje}</p>
-                            </div>
-                        </div>
-                    )}
 
                     {/* Botones de registro para Aliado */}
                     {esAliado && (

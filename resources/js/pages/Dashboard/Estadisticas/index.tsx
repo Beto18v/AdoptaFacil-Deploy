@@ -1,6 +1,7 @@
 import ChatbotWidget from '@/components/chatbot-widget';
 import { SpeciesDonutChart } from '@/components/species-donut-chart';
 import { ThemeSwitcher } from '@/components/theme-switcher';
+import { showToast, useToastMessage } from '@/lib/toast';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
@@ -51,12 +52,12 @@ const breadcrumbs: BreadcrumbItem[] = [
 export default function AdoptionStats({ generalStats, monthlyStats, adopcionesPorMes, distribucionTipos, motivosRechazo }: Props) {
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
     const [pdfError, setPdfError] = useState<string | null>(null);
-
     const [tipoReporte, setTipoReporte] = useState<'general' | 'rechazos'>('general');
 
     const totalGatos = distribucionTipos.find((item) => item.name.toLowerCase() === 'gato')?.total ?? 0;
-
     const totalPerros = distribucionTipos.find((item) => item.name.toLowerCase() === 'perro')?.total ?? 0;
+
+    useToastMessage(pdfError, 'error');
 
     const descargarReportePDF = async () => {
         setIsGeneratingPdf(true);
@@ -94,8 +95,7 @@ export default function AdoptionStats({ generalStats, monthlyStats, adopcionesPo
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
 
-            // descarga exitosa
-            alert('Reporte descargado correctamente');
+            showToast('Reporte descargado correctamente', 'success');
         } catch (err: unknown) {
             console.error('Error al generar el pdf:', err);
             let mensaje = 'Error al generar el reporte. Por favor, intente nuevamente.';
@@ -147,7 +147,7 @@ export default function AdoptionStats({ generalStats, monthlyStats, adopcionesPo
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
 
-            alert('Reporte de rechazos descargado correctamente');
+            showToast('Reporte de rechazos descargado correctamente', 'success');
         } catch (err: unknown) {
             console.error('Error al generar el pdf de rechazos:', err);
             let mensaje = 'Error al generar el reporte. Por favor, intente nuevamente.';
@@ -251,13 +251,6 @@ export default function AdoptionStats({ generalStats, monthlyStats, adopcionesPo
                             </button>
                         </div>
                     </div>
-
-                    {/* Mensaje de error */}
-                    {pdfError && (
-                        <div className="mb-4 rounded-lg bg-red-100 p-3 text-center text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300">
-                            {pdfError}
-                        </div>
-                    )}
 
                     {/* Tarjetas de estadísticas principales */}
                     <div className="mb-12 grid grid-cols-2 gap-8 md:grid-cols-4">

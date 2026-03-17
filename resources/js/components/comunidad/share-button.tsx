@@ -1,5 +1,6 @@
 // resources/js/components/comunidad/share-button.tsx
 import { Button } from '@/components/ui/button';
+import { showToast } from '@/lib/toast';
 import { Copy, ExternalLink, Share2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
@@ -55,7 +56,7 @@ export default function ShareButton({ postId, disabled = false, className = '' }
 
             if (!csrfToken) {
                 console.error('CSRF token no encontrado');
-                alert('Error: Token CSRF no encontrado. Recarga la página.');
+                showToast('Error: Token CSRF no encontrado. Recarga la página.', 'error');
                 setIsSharing(false);
                 return;
             }
@@ -99,11 +100,11 @@ export default function ShareButton({ postId, disabled = false, className = '' }
                 }
             } else {
                 console.error('Error en la respuesta:', data);
-                alert(`Error al compartir: ${data.message || 'Error desconocido'}`);
+                showToast(`Error al compartir: ${data.message || 'Error desconocido'}`, 'error');
             }
         } catch (error) {
             console.error('Error en la petición:', error);
-            alert('Error de conexión. Verifica tu conexión a internet.');
+            showToast('Error de conexión. Verifica tu conexión a internet.', 'error');
         } finally {
             setIsSharing(false);
         }

@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { showToast } from '@/lib/toast';
 
 interface FavoritesContextType {
     favoriteIds: number[];
@@ -33,6 +34,17 @@ export function FavoritesProvider({
     const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
+    const notify = useCallback(
+        (message: string, type: 'error' | 'success' | 'info') => {
+            if (showNotification) {
+                showNotification(message, type);
+                return;
+            }
+
+            showToast(message, type);
+        },
+        [showNotification],
+    );
 
     // Set para búsquedas más rápidas
     const favoriteSet = useMemo(() => new Set(favoriteIds), [favoriteIds]);
@@ -140,12 +152,10 @@ export function FavoritesProvider({
                         // Favorito ya existe, no mostrar error
                     } else {
                         const message = data.message || 'Error al agregar a favoritos';
-                        if (showNotification) {
-                            showNotification(message, 'error');
-                        } else {
-                            alert(message);
-                        }
+                        notify(message, 'error');
                     }
+                } else {
+                    notify('Agregado a favoritos', 'success');
                 }
             } catch (error) {
                 // Revertir cambio optimista en caso de error
@@ -158,17 +168,13 @@ export function FavoritesProvider({
                     return;
                 } else {
                     const message = 'Error de conexión al agregar a favoritos';
-                    if (showNotification) {
-                        showNotification(message, 'error');
-                    } else {
-                        alert(message);
-                    }
+                    notify(message, 'error');
                 }
             } finally {
                 setIsLoading(false);
             }
         },
-        [favoriteSet, isLoading, showNotification],
+        [favoriteSet, isLoading, notify],
     );
 
     const removeFromFavorites = useCallback(
@@ -229,11 +235,7 @@ export function FavoritesProvider({
                         // Favorito no existe, no mostrar error
                     } else {
                         const message = data.message || 'Error al remover de favoritos';
-                        if (showNotification) {
-                            showNotification(message, 'error');
-                        } else {
-                            alert(message);
-                        }
+                        notify(message, 'error');
                     }
                 }
             } catch (error) {
@@ -250,17 +252,13 @@ export function FavoritesProvider({
                     return;
                 } else {
                     const message = 'Error de conexión al remover de favoritos';
-                    if (showNotification) {
-                        showNotification(message, 'error');
-                    } else {
-                        alert(message);
-                    }
+                    notify(message, 'error');
                 }
             } finally {
                 setIsLoading(false);
             }
         },
-        [favoriteSet, isLoading, showNotification],
+        [favoriteSet, isLoading, notify],
     );
 
     const toggleFavorite = useCallback(

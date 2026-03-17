@@ -3,6 +3,7 @@ import { ThemeSwitcher } from '@/components/theme-switcher';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { showToast } from '@/lib/toast';
 import AppLayout from '@/layouts/app-layout';
 import { Head, router } from '@inertiajs/react';
 import { Trash2 } from 'lucide-react';
@@ -99,7 +100,7 @@ export default function SolicitudesIndex({ auth, solicitudes }: SolicitudesPageP
             }
         } catch (error) {
             console.error('Error al aprobar solicitud:', error);
-            alert('Error al aprobar la solicitud. Por favor, intenta de nuevo.');
+            showToast('Error al aprobar la solicitud. Por favor, intenta de nuevo.', 'error');
         }
     };
 
@@ -134,7 +135,7 @@ export default function SolicitudesIndex({ auth, solicitudes }: SolicitudesPageP
             }
         } catch (error) {
             console.error('Error al rechazar solicitud:', error);
-            alert('Error al procesar la solicitud. Por favor, intenta de nuevo.');
+            showToast('Error al procesar la solicitud. Por favor, intenta de nuevo.', 'error');
         } finally {
             setIsSubmittingReject(false);
         }

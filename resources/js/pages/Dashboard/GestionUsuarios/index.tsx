@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
+import { showToast } from '@/lib/toast';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
@@ -113,17 +114,17 @@ export default function GestionUsuarios() {
             });
 
             if (response.ok) {
-                alert('Correos enviados exitosamente');
+                showToast('Correos enviados exitosamente', 'success');
                 setIsEmailModalOpen(false);
                 setEmailSubject('');
                 setEmailDescription('');
                 setAdditionalRecipients([]);
             } else {
                 const errorText = await response.text();
-                alert('Error al enviar correos: ' + errorText);
+                showToast('Error al enviar correos: ' + errorText, 'error');
             }
         } catch (error) {
-            alert('Error de conexión: ' + (error as Error).message);
+            showToast('Error de conexión: ' + (error as Error).message, 'error');
         }
     };
 

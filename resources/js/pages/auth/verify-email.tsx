@@ -1,6 +1,7 @@
 import ParticlesComponent from '@/components/particles';
 import { ThemeSwitcher } from '@/components/theme-switcher';
 import { Button } from '@/components/ui/button';
+import { useToastSignal } from '@/lib/toast';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 import { FormEventHandler } from 'react';
@@ -8,6 +9,9 @@ import { refreshCsrfToken } from '../../app';
 
 export default function VerifyEmail({ status }: { status?: string }) {
     const { post, processing } = useForm({});
+    const verificationLinkSent = status === 'verification-link-sent';
+
+    useToastSignal(verificationLinkSent, 'Se ha enviado un nuevo enlace de verificación a tu dirección de email.', 'success');
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
@@ -31,12 +35,6 @@ export default function VerifyEmail({ status }: { status?: string }) {
                         Por favor verifica tu dirección de email haciendo clic en el enlace que te hemos enviado.
                     </p>
                 </div>
-
-                {status === 'verification-link-sent' && (
-                    <div className="mb-4 text-center text-sm font-medium text-green-600 dark:text-green-400">
-                        Se ha enviado un nuevo enlace de verificación a tu dirección de email.
-                    </div>
-                )}
 
                 <form onSubmit={submit} className="flex flex-col gap-6 text-center">
                     <Button

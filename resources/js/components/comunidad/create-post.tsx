@@ -1,12 +1,12 @@
 // resources/js/components/comunidad/create-post.tsx
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { getAvatarUrl } from '@/lib/avatar-utils';
+import { showToast } from '@/lib/toast';
 import { router } from '@inertiajs/react';
-import { CheckCircle, ImagePlus, LogIn, Send, Video, XCircle } from 'lucide-react';
+import { ImagePlus, LogIn, Send, Video } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface User {
@@ -42,8 +42,6 @@ export default function CreatePost({ user, onPostCreated }: CreatePostProps) {
     const [category, setCategory] = useState('General');
     const [image, setImage] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
     const [isSelectOpen, setIsSelectOpen] = useState(false);
 
     useEffect(() => {
@@ -73,24 +71,22 @@ export default function CreatePost({ user, onPostCreated }: CreatePostProps) {
         e.preventDefault();
 
         if (!user) {
-            setError('Debes iniciar sesión para publicar');
+            showToast('Debes iniciar sesión para publicar', 'error');
             return;
         }
 
         if (!content.trim()) {
-            setError('El contenido no puede estar vacío');
+            showToast('El contenido no puede estar vacío', 'error');
             return;
         }
 
         setIsSubmitting(true);
-        setError('');
-        setSuccess('');
 
         try {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
             if (!csrfToken) {
-                setError('Error de seguridad. Por favor, recarga la página.');
+                showToast('Error de seguridad. Por favor, recarga la página.', 'error');
                 return;
             }
 
@@ -119,27 +115,24 @@ export default function CreatePost({ user, onPostCreated }: CreatePostProps) {
                 setContent('');
                 setCategory('General');
                 setImage(null);
-                setSuccess('¡Publicación creada exitosamente!');
+                showToast('¡Publicación creada exitosamente!', 'success');
 
                 // Llamar al callback para actualizar la lista
                 if (onPostCreated && data.post) {
                     onPostCreated(data.post);
                 }
-
-                // Ocultar mensaje de éxito después de 3 segundos
-                setTimeout(() => setSuccess(''), 3000);
             } else {
                 // Manejar errores de validación
                 if (data.errors) {
                     const errorMessages = Object.values(data.errors).flat().join(', ');
-                    setError(errorMessages);
+                    showToast(errorMessages, 'error');
                 } else {
-                    setError(data.message || 'Error al publicar');
+                    showToast(data.message || 'Error al publicar', 'error');
                 }
             }
         } catch (error) {
             console.error('Error:', error);
-            setError('Error de conexión. Por favor, intenta de nuevo.');
+            showToast('Error de conexión. Por favor, intenta de nuevo.', 'error');
         } finally {
             setIsSubmitting(false);
         }
@@ -150,7 +143,7 @@ export default function CreatePost({ user, onPostCreated }: CreatePostProps) {
         if (file) {
             if (file.size > 2 * 1024 * 1024) {
                 // 2MB
-                setError('La imagen no puede ser mayor a 2MB');
+                showToast('La imagen no puede ser mayor a 2MB', 'error');
                 return;
             }
             setImage(file);
@@ -242,20 +235,6 @@ export default function CreatePost({ user, onPostCreated }: CreatePostProps) {
 
                             {image && <span className="text-sm text-green-600 dark:text-green-400">Imagen seleccionada: {image.name}</span>}
                         </div>
-
-                        {success && (
-                            <Alert className="mb-4 border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-900/50 dark:text-green-200">
-                                <CheckCircle className="h-4 w-4" />
-                                <AlertDescription>{success}</AlertDescription>
-                            </Alert>
-                        )}
-
-                        {error && (
-                            <Alert className="mb-4 border-red-200 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-900/50 dark:text-red-200">
-                                <XCircle className="h-4 w-4" />
-                                <AlertDescription>{error}</AlertDescription>
-                            </Alert>
-                        )}
 
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">

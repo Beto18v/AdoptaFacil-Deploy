@@ -4,6 +4,7 @@ import { ThemeSwitcher } from '@/components/theme-switcher';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useToastMessage } from '@/lib/toast';
 import { Head, Link, router } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
@@ -43,6 +44,9 @@ export default function ForgotPassword({ status }: { status?: string }) {
         statusMessage = '';
     }
 
+    useToastMessage(statusMessage, 'success');
+    useToastMessage(message, 'success');
+
     return (
         <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 dark:from-green-600 dark:via-blue-700 dark:to-purple-800">
             <ParticlesComponent />
@@ -79,10 +83,6 @@ export default function ForgotPassword({ status }: { status?: string }) {
                             Ingresa tu correo electrónico para recibir un código de recuperación
                         </p>
                     </div>
-                    {/* Se muestra el mensaje traducido */}
-                    {statusMessage && <div className="mb-6 text-center text-sm font-medium text-green-600 dark:text-green-400">{statusMessage}</div>}
-                    {/* Mensaje de éxito del microservicio */}
-                    {message && <div className="mb-6 text-center text-sm font-medium text-green-600 dark:text-green-400">{message}</div>}
                     <form className="flex flex-col gap-6" onSubmit={submit}>
                         <div className="grid gap-6">
                             <div className="mt-4 grid gap-2">

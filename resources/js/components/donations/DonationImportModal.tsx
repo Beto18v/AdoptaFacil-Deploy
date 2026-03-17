@@ -1,11 +1,11 @@
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertCircle, CheckCircle2, FileSpreadsheet, Trash2, Upload } from 'lucide-react';
+import { useToastMessage } from '@/lib/toast';
+import { CheckCircle2, FileSpreadsheet, Trash2, Upload } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import * as XLSX from 'xlsx';
@@ -46,6 +46,8 @@ export function DonationImportModal({ onImportSuccess }: DonationImportModalProp
     const [previewData, setPreviewData] = useState<DonationData[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    useToastMessage(error, 'error');
 
     const onDrop = useCallback((acceptedFiles: File[]) => {
         const file = acceptedFiles[0];
@@ -228,13 +230,6 @@ export function DonationImportModal({ onImportSuccess }: DonationImportModalProp
                         </DialogTitle>
                         <DialogDescription>Sube un archivo Excel con las donaciones para importarlas masivamente</DialogDescription>
                     </DialogHeader>
-
-                    {error && (
-                        <Alert variant="destructive">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription>{error}</AlertDescription>
-                        </Alert>
-                    )}
 
                     {step === 'upload' && (
                         <div className="space-y-4">

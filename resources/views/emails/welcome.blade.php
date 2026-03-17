@@ -44,12 +44,6 @@
                             </a>
                         </td>
                     </tr>
-                    <tr>
-                        <td style="font-size:14px; color:#6b7280; line-height:1.5; padding-top:8px;">
-                            Gracias,<br>
-                            {{ config('app.name') }}
-                        </td>
-                    </tr>
                 </table>
             </td>
         </tr>

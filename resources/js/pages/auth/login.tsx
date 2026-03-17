@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useToastMessage } from '@/lib/toast';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { Eye, EyeOff, LoaderCircle } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
@@ -32,6 +33,8 @@ export default function Login({ status, canResetPassword }: LoginProps) {
         password: '',
         remember: false,
     });
+
+    useToastMessage(status, 'success');
 
     const submit: FormEventHandler = async (e) => {
         e.preventDefault();
@@ -73,8 +76,6 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                             className="mx-auto hidden h-36 w-56 drop-shadow-2xl transition-transform duration-300 hover:scale-105 dark:block"
                         />
                     </Link>
-                    {status && <div className="mb-6 text-center text-sm font-medium text-green-600 dark:text-green-400">{status}</div>}
-
                     <form className="flex flex-col gap-6" onSubmit={submit}>
                         <div className="grid gap-6">
                             <div className="grid gap-2">

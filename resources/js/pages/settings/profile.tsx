@@ -1,5 +1,4 @@
 import { type BreadcrumbItem, type SharedData } from '@/types';
-import { Transition } from '@headlessui/react';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { FormEventHandler, useEffect, useRef, useState } from 'react';
 
@@ -10,9 +9,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { showToast, useToastSignal } from '@/lib/toast';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
-import { AlertCircle, Camera, CheckCircle, Mail, User, X } from 'lucide-react';
+import { AlertCircle, Camera, Mail, User, X } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -31,7 +31,6 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
     const { auth } = usePage<SharedData>().props;
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(auth.user.avatar ? `/storage/${auth.user.avatar}` : null);
-    const [showSuccessMessage, setShowSuccessMessage] = useState<boolean>(false);
     const [manualSuccess, setManualSuccess] = useState<boolean>(false);
 
     const { data, setData, errors, processing, recentlySuccessful, setError } = useForm<ProfileForm>({
@@ -42,20 +41,10 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
 
     // Detectar si hubo un cambio exitoso usando el status de Laravel y estado manual
     const wasSuccessful = recentlySuccessful || status === 'profile-updated' || manualSuccess;
+    const verificationLinkSent = status === 'verification-link-sent';
 
-    // Mostrar mensaje de éxito y ocultarlo después de 3 segundos
-    useEffect(() => {
-        if (wasSuccessful) {
-            setShowSuccessMessage(true);
-            const timer = setTimeout(() => {
-                setShowSuccessMessage(false);
-            }, 3000); // 3 segundos
-
-            return () => clearTimeout(timer);
-        } else {
-            setShowSuccessMessage(false);
-        }
-    }, [wasSuccessful]);
+    useToastSignal(wasSuccessful, 'Cambios guardados correctamente', 'success');
+    useToastSignal(verificationLinkSent, 'Se ha enviado un nuevo enlace de verificación a tu correo electrónico.', 'success');
 
     // Actualizar previewUrl cuando cambie el avatar del usuario (después de actualización)
     useEffect(() => {
@@ -71,13 +60,13 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
         if (file) {
             // Validar tipo de archivo
             if (!file.type.startsWith('image/')) {
-                alert('Por favor, selecciona un archivo de imagen válido.');
+                showToast('Por favor, selecciona un archivo de imagen válido.', 'error');
                 return;
             }
 
             // Validar tamaño (máximo 2MB)
             if (file.size > 2 * 1024 * 1024) {
-                alert('El archivo es demasiado grande. El tamaño máximo es 2MB.');
+                showToast('El archivo es demasiado grande. El tamaño máximo es 2MB.', 'error');
                 return;
             }
 
@@ -120,7 +109,6 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                     onError: () => {
                         // Activar el estado manual de éxito
                         setManualSuccess(false);
-                        setShowSuccessMessage(false);
                     },
                 },
             );
@@ -162,7 +150,6 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                             setError(key as keyof ProfileForm, errors[key] as string);
                         });
                         setManualSuccess(false);
-                        setShowSuccessMessage(false);
                     },
                 },
             );
@@ -188,7 +175,6 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                             setError(key as keyof ProfileForm, errors[key] as string);
                         });
                         setManualSuccess(false);
-                        setShowSuccessMessage(false);
                     },
                 },
             );
@@ -341,16 +327,6 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                                             </Link>
                                         </p>
 
-                                        {status === 'verification-link-sent' && (
-                                            <div className="mt-3 rounded-lg border border-green-400/50 bg-green-200/60 p-3 dark:border-green-600/50 dark:bg-green-900/40">
-                                                <div className="flex items-center gap-2">
-                                                    <CheckCircle className="h-4 w-4 text-green-700 dark:text-green-400" />
-                                                    <span className="text-sm font-medium text-green-800 dark:text-green-300">
-                                                        Se ha enviado un nuevo enlace de verificación a tu correo electrónico.
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -365,20 +341,6 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                             >
                                 {processing ? 'Guardando...' : 'Guardar cambios'}
                             </Button>
-
-                            <Transition
-                                show={showSuccessMessage}
-                                enter="transition-all ease-in-out duration-300"
-                                enterFrom="opacity-0 translate-y-1"
-                                enterTo="opacity-100 translate-y-0"
-                                leave="transition-all ease-in-out duration-300"
-                                leaveTo="opacity-0 translate-y-1"
-                            >
-                                <div className="flex items-center gap-2 rounded-xl border border-green-400/50 bg-gradient-to-r from-green-200/80 to-emerald-200/60 p-3 dark:border-green-600/50 dark:from-green-900/60 dark:to-emerald-900/50">
-                                    <CheckCircle className="h-5 w-5 text-green-700 dark:text-green-400" />
-                                    <span className="text-sm font-medium text-green-800 dark:text-green-300">Cambios guardados correctamente</span>
-                                </div>
-                            </Transition>
                         </div>
                     </form>
                 </div>

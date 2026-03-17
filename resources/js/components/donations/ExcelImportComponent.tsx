@@ -1,3 +1,4 @@
+import { useToastMessage } from '@/lib/toast';
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import * as XLSX from 'xlsx';
@@ -35,6 +36,8 @@ export function ExcelImportComponent({ onImportSuccess }: ExcelImportComponentPr
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showImport, setShowImport] = useState(false);
+
+    useToastMessage(error, 'error');
 
     const onDrop = useCallback((acceptedFiles: File[]) => {
         const file = acceptedFiles[0];
@@ -239,30 +242,6 @@ export function ExcelImportComponent({ onImportSuccess }: ExcelImportComponentPr
                             </svg>
                         </button>
                     </div>
-
-                    {error && (
-                        <div className="mb-6 rounded-2xl border-2 border-red-200 bg-gradient-to-r from-red-50 to-red-100 p-4 shadow-lg dark:border-red-800/50 dark:from-red-900/20 dark:to-red-800/20">
-                            <div className="flex items-start gap-3">
-                                <svg
-                                    className="mt-0.5 h-6 w-6 flex-shrink-0 text-red-500 dark:text-red-400"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.502 0L4.232 15.5c-.77.833.192 2.5 1.732 2.5z"
-                                    />
-                                </svg>
-                                <div>
-                                    <h4 className="font-bold text-red-700 dark:text-red-300">Error en la importación</h4>
-                                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{error}</p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
 
                     {step === 'upload' && (
                         <div className="space-y-6">

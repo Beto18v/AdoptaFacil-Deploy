@@ -2,7 +2,6 @@ import InputError from '@/components/input-error';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { type BreadcrumbItem } from '@/types';
-import { Transition } from '@headlessui/react';
 import { Head, useForm } from '@inertiajs/react';
 import { FormEventHandler, useRef, useState } from 'react';
 
@@ -10,7 +9,8 @@ import { ThemeSwitcher } from '@/components/theme-switcher';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CheckCircle, Eye, EyeOff, Key, Lock, Shield } from 'lucide-react';
+import { useToastSignal } from '@/lib/toast';
+import { Eye, EyeOff, Key, Lock, Shield } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -33,6 +33,8 @@ export default function Password() {
         password: '',
         password_confirmation: '',
     });
+
+    useToastSignal(recentlySuccessful, 'Contraseña actualizada correctamente', 'success');
 
     const updatePassword: FormEventHandler = (e) => {
         e.preventDefault();
@@ -213,22 +215,6 @@ export default function Password() {
                             >
                                 {processing ? 'Actualizando...' : 'Actualizar contraseña'}
                             </Button>
-
-                            <Transition
-                                show={recentlySuccessful}
-                                enter="transition-all ease-in-out duration-300"
-                                enterFrom="opacity-0 translate-y-1"
-                                enterTo="opacity-100 translate-y-0"
-                                leave="transition-all ease-in-out duration-300"
-                                leaveTo="opacity-0 translate-y-1"
-                            >
-                                <div className="flex items-center gap-2 rounded-xl border border-green-400/50 bg-gradient-to-r from-green-200/80 to-emerald-200/60 p-3 dark:border-green-600/50 dark:from-green-900/60 dark:to-emerald-900/50">
-                                    <CheckCircle className="h-5 w-5 text-green-700 dark:text-green-400" />
-                                    <span className="text-sm font-medium text-green-800 dark:text-green-300">
-                                        Contraseña actualizada correctamente
-                                    </span>
-                                </div>
-                            </Transition>
                         </div>
                     </form>
                 </div>
