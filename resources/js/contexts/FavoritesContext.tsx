@@ -114,10 +114,11 @@ export function FavoritesProvider({
                     console.error('Error al agregar a favoritos:', data?.message);
 
                     if (response.status === 409) {
-                    } else {
-                        const message = data?.message || 'Error al agregar a favoritos';
-                        notify(message, 'error');
+                        return;
                     }
+
+                    const message = data?.message || 'Error al agregar a favoritos';
+                    notify(message, 'error');
                 } else {
                     notify('Agregado a favoritos', 'success');
                 }
@@ -175,10 +176,11 @@ export function FavoritesProvider({
                     console.error('Error al remover de favoritos:', data?.message);
 
                     if (response.status === 404) {
-                    } else {
-                        const message = data?.message || 'Error al remover de favoritos';
-                        notify(message, 'error');
+                        return;
                     }
+
+                    const message = data?.message || 'Error al remover de favoritos';
+                    notify(message, 'error');
                 }
             } catch (error) {
                 // Revertir cambio optimista en caso de error
