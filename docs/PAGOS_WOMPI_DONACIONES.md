@@ -7,7 +7,7 @@ Se implemento un MVP de pagos para el modulo de donaciones usando Wompi Web Chec
 La integracion se hizo con cambios pequenos sobre lo ya existente:
 
 - `app/Http/Controllers/DonacionesController.php` sigue siendo el punto central del modulo.
-- La donacion ya no nace como exitosa: ahora inicia en `pending`.
+- La donacion ya no nace como exitosa ni como transaccion pendiente: ahora inicia en `initiated`.
 - El estado final se actualiza con webhook seguro de Wompi.
 - El usuario tiene retorno desde Wompi y ve el resultado en el dashboard.
 - El refugio ahora puede registrar como recibe dinero en una tabla separada.
@@ -20,7 +20,7 @@ La integracion se hizo con cambios pequenos sobre lo ya existente:
     - valida la donacion
     - genera la referencia unica en backend
     - genera la firma de integridad de Wompi en backend
-    - crea la donacion en estado `pending`
+    - crea la donacion en estado `initiated`
     - responde con la URL de checkout de Wompi
 - `DonacionesController::handleWompiReturn`
     - recibe el `id` de transaccion que Wompi agrega a la URL de retorno
@@ -77,7 +77,7 @@ La tabla `shelters` no se destruyo ni se rehizo.
 
 1. El cliente abre el formulario de donacion.
 2. El backend crea una fila en `donations` con:
-    - `status = pending`
+    - `status = initiated`
     - `gateway = wompi`
     - `reference = DON-...`
 3. El frontend redirige al checkout de Wompi.
@@ -92,6 +92,7 @@ La tabla `shelters` no se destruyo ni se rehizo.
 
 Estados internos guardados en DB:
 
+- `initiated`
 - `pending`
 - `completed`
 - `cancelled`
@@ -104,6 +105,13 @@ Mapeo desde Wompi:
 - `VOIDED` -> `cancelled`
 - `DECLINED` -> `failed`
 - `ERROR` -> `failed`
+
+Semantica recomendada:
+
+- `initiated`: la plataforma ya genero el checkout, pero todavia no conoce una transaccion consultable en Wompi
+- `pending`: Wompi ya reporto una transaccion y aun no entrega un estado final
+- `cancelled`: Wompi reporto anulacion o el checkout se abandono/expiró
+- `failed`: Wompi reporto rechazo o error del medio de pago
 
 Notas:
 

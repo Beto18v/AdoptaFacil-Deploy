@@ -183,6 +183,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('donaciones', [DonacionesController::class, 'index'])->name('donaciones.index');
     // Procesar nueva donación
     Route::post('donaciones', [DonacionesController::class, 'store'])->name('donaciones.store');
+    Route::post('donaciones/{donation}/refresh-status', [DonacionesController::class, 'refreshStatus'])->name('donaciones.refresh-status');
+    Route::post('donaciones/{donation}/cancel-checkout', [DonacionesController::class, 'cancelCheckout'])->name('donaciones.cancel-checkout');
     Route::get('donaciones/pago/retorno', [DonacionesController::class, 'handleWompiReturn'])->name('donaciones.wompi.return');
     // Importar donaciones desde Excel (solo para refugios)
     Route::post('donaciones/import', [DonacionesController::class, 'importDonations'])->name('donaciones.import');

@@ -22,15 +22,17 @@ use Inertia\Response;
 
 class DonacionesController extends Controller
 {
-    public function index(): Response
+    public function index(WompiService $wompiService): Response
     {
         /** @var User $user */
         $user = Auth::user();
         $user->load(['shelter.activePaymentMethod']);
 
+        $this->syncVisibleOpenDonations($user, $wompiService);
+
         $donations = $this->filteredDonationsQuery($user)
             ->get()
-            ->map(fn (Donation $donation) => $this->serializeDonation($donation))
+            ->map(fn (Donation $donation) => $this->serializeDonation($donation, $wompiService, $user))
             ->values();
 
         return Inertia::render('Dashboard/Donaciones/index', [
@@ -93,11 +95,12 @@ class DonacionesController extends Controller
         $donation = Donation::create([
             ...$validatedData,
             'shelter_id' => $shelter->id,
-            'status' => Donation::STATUS_PENDING,
+            'status' => Donation::STATUS_INITIATED,
             'gateway' => Donation::GATEWAY_WOMPI,
             'reference' => $reference,
             'gateway_payload' => [
                 'checkout' => [
+                    'url' => $checkout['checkout_url'],
                     'query' => $checkout['query'],
                     'created_at' => now()->toIso8601String(),
                 ],
@@ -106,9 +109,9 @@ class DonacionesController extends Controller
 
         if ($request->expectsJson()) {
             return response()->json([
-                'message' => 'Donacion creada en estado pendiente.',
+                'message' => 'Donacion creada. Puedes completar el pago desde Wompi.',
                 'checkout_url' => $checkout['checkout_url'],
-                'donation' => $this->serializeDonation($donation->load('shelter')),
+                'donation' => $this->serializeDonation($donation->load('shelter'), $wompiService, $authenticatedUser),
             ], 201);
         }
 
@@ -120,7 +123,10 @@ class DonacionesController extends Controller
         $transactionId = $request->string('id')->trim()->value();
 
         if (blank($transactionId)) {
-            return redirect()->route('donaciones.index')->with('warning', 'No fue posible identificar la transaccion de Wompi.');
+            return redirect()->route('donaciones.index')->with(
+                'warning',
+                'No fue posible identificar la transaccion de Wompi. Si saliste del checkout, puedes continuarlo o cancelarlo desde la tabla.',
+            );
         }
 
         try {
@@ -223,6 +229,77 @@ class DonacionesController extends Controller
 
         return response()->json([
             'message' => 'OK',
+        ]);
+    }
+
+    public function refreshStatus(Request $request, Donation $donation, WompiService $wompiService): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        $this->ensureCanViewDonation($user, $donation);
+
+        $donation->loadMissing('shelter');
+
+        if (in_array($donation->status, Donation::finalStatuses(), true)) {
+            return response()->json([
+                'message' => 'La donacion ya tiene un estado final.',
+                'donation' => $this->serializeDonation($donation, $wompiService, $user),
+            ]);
+        }
+
+        if (! $wompiService->canRefreshStatus($donation)) {
+            if ($wompiService->hasExpiredCheckout($donation)) {
+                $donation = $wompiService->cancelAbandonedCheckout($donation, 'checkout_timeout');
+                $donation->loadMissing('shelter');
+
+                return response()->json([
+                    'message' => 'El checkout expiro y la donacion fue cancelada.',
+                    'donation' => $this->serializeDonation($donation, $wompiService, $user),
+                ]);
+            }
+
+            return response()->json([
+                'message' => 'Aun no hay una transaccion registrada en Wompi para consultar. Puedes continuar el checkout.',
+                'donation' => $this->serializeDonation($donation, $wompiService, $user),
+            ], 422);
+        }
+
+        $donation = $wompiService->syncOpenDonation($donation);
+        $donation->loadMissing('shelter');
+
+        return response()->json([
+            'message' => $this->statusRefreshMessage($donation),
+            'donation' => $this->serializeDonation($donation, $wompiService, $user),
+        ]);
+    }
+
+    public function cancelCheckout(Request $request, Donation $donation, WompiService $wompiService): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        $this->ensureCanManageOwnDonation($user, $donation);
+        $donation->loadMissing('shelter');
+
+        if (in_array($donation->status, Donation::finalStatuses(), true)) {
+            return response()->json([
+                'message' => 'La donacion ya tiene un estado final.',
+                'donation' => $this->serializeDonation($donation, $wompiService, $user),
+            ], 422);
+        }
+
+        if (! $wompiService->canResumeCheckout($donation) && ! $wompiService->hasExpiredCheckout($donation)) {
+            return response()->json([
+                'message' => 'No es posible cancelar una transaccion que ya esta siendo procesada por Wompi.',
+                'donation' => $this->serializeDonation($donation, $wompiService, $user),
+            ], 422);
+        }
+
+        $donation = $wompiService->cancelAbandonedCheckout($donation, 'checkout_cancelled_by_user');
+        $donation->loadMissing('shelter');
+
+        return response()->json([
+            'message' => 'La donacion fue cancelada y ya no aparecera como pendiente.',
+            'donation' => $this->serializeDonation($donation, $wompiService, $user),
         ]);
     }
 
@@ -334,8 +411,16 @@ class DonacionesController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function serializeDonation(Donation $donation): array
+    private function serializeDonation(Donation $donation, WompiService $wompiService, User $user): array
     {
+        $checkoutUrl = $wompiService->buildCheckoutUrlFromDonation($donation);
+        $canResumeCheckout = $user->role === 'cliente'
+            && $user->email === $donation->donor_email
+            && $wompiService->canResumeCheckout($donation);
+        $canCancelCheckout = $canResumeCheckout;
+        $canRefreshStatus = $wompiService->canRefreshStatus($donation)
+            && $this->userCanRefreshDonation($user, $donation);
+
         return [
             'id' => $donation->id,
             'donor_name' => $donation->getDonorDisplayName(),
@@ -351,6 +436,11 @@ class DonacionesController extends Controller
             'paid_at' => $donation->paid_at?->toISOString(),
             'failed_at' => $donation->failed_at?->toISOString(),
             'cancelled_at' => $donation->cancelled_at?->toISOString(),
+            'checkout_url' => $canResumeCheckout ? $checkoutUrl : null,
+            'can_resume_checkout' => $canResumeCheckout,
+            'can_cancel_checkout' => $canCancelCheckout,
+            'can_refresh_status' => $canRefreshStatus,
+            'status_message' => $this->statusDetailMessage($donation, $wompiService),
             'is_imported' => $donation->isImported(),
             'shelter' => $donation->shelter ? [
                 'id' => $donation->shelter->id,
@@ -389,6 +479,7 @@ class DonacionesController extends Controller
             Donation::STATUS_COMPLETED => ['success', 'Tu donacion fue completada exitosamente.'],
             Donation::STATUS_CANCELLED => ['warning', 'Tu donacion fue cancelada en Wompi.'],
             Donation::STATUS_FAILED => ['error', 'Tu donacion no pudo ser procesada.'],
+            Donation::STATUS_INITIATED => ['info', 'Tu checkout esta listo para que completes el pago en Wompi.'],
             default => ['info', 'Tu donacion sigue pendiente de confirmacion.'],
         };
     }
@@ -405,5 +496,82 @@ class DonacionesController extends Controller
     private function generateManualReference(): string
     {
         return 'MANUAL-'.Str::upper((string) Str::ulid());
+    }
+
+    private function syncVisibleOpenDonations(User $user, WompiService $wompiService): void
+    {
+        if (! $wompiService->isReadyForCheckout()) {
+            return;
+        }
+
+        $this->filteredDonationsQuery($user)
+            ->where('gateway', Donation::GATEWAY_WOMPI)
+            ->whereIn('status', Donation::openStatuses())
+            ->limit(10)
+            ->get()
+            ->each(fn (Donation $donation) => $wompiService->syncOpenDonation($donation));
+    }
+
+    private function ensureCanViewDonation(User $user, Donation $donation): void
+    {
+        if (
+            $user->role === 'admin'
+            || ($user->role === 'cliente' && $donation->donor_email === $user->email)
+            || ($user->role === 'aliado' && $user->shelter && $donation->shelter_id === $user->shelter->id)
+        ) {
+            return;
+        }
+
+        abort(403);
+    }
+
+    private function ensureCanManageOwnDonation(User $user, Donation $donation): void
+    {
+        if ($user->role === 'cliente' && $donation->donor_email === $user->email) {
+            return;
+        }
+
+        abort(403);
+    }
+
+    private function userCanRefreshDonation(User $user, Donation $donation): bool
+    {
+        if ($user->role === 'admin') {
+            return true;
+        }
+
+        if ($user->role === 'cliente') {
+            return $donation->donor_email === $user->email;
+        }
+
+        return $user->role === 'aliado'
+            && $user->shelter !== null
+            && $donation->shelter_id === $user->shelter->id;
+    }
+
+    private function statusDetailMessage(Donation $donation, WompiService $wompiService): ?string
+    {
+        return match ($donation->status) {
+            Donation::STATUS_INITIATED => $wompiService->hasExpiredCheckout($donation)
+                ? 'El checkout expiro y puede ser cancelado.'
+                : 'El checkout fue generado, pero Wompi aun no reporta una transaccion.',
+            Donation::STATUS_PENDING => 'Wompi aun no confirma el resultado final del pago.',
+            Donation::STATUS_FAILED => 'Wompi reporto que el pago fallo o fue rechazado.',
+            Donation::STATUS_CANCELLED => 'El pago fue cancelado o el checkout se abandono.',
+            Donation::STATUS_COMPLETED => 'Wompi confirmo el pago exitosamente.',
+            default => null,
+        };
+    }
+
+    private function statusRefreshMessage(Donation $donation): string
+    {
+        return match ($donation->status) {
+            Donation::STATUS_COMPLETED => 'Wompi confirmo el pago exitosamente.',
+            Donation::STATUS_FAILED => 'Wompi reporto que el pago fallo.',
+            Donation::STATUS_CANCELLED => 'La donacion fue cancelada.',
+            Donation::STATUS_PENDING => 'La transaccion sigue pendiente en Wompi.',
+            Donation::STATUS_INITIATED => 'El checkout aun no genera una transaccion consultable.',
+            default => 'Estado actualizado.',
+        };
     }
 }

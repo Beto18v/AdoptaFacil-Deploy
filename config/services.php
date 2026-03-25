@@ -50,6 +50,7 @@ return [
         'event_secret' => env('WOMPI_EVENT_SECRET'),
         'api_url' => env('WOMPI_API_URL', 'https://production.wompi.co/v1'),
         'checkout_url' => env('WOMPI_CHECKOUT_URL', 'https://checkout.wompi.co/p/'),
+        'checkout_timeout_minutes' => env('WOMPI_CHECKOUT_TIMEOUT_MINUTES', 15),
     ],
 
 ];

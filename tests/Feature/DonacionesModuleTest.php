@@ -17,6 +17,7 @@ function configureWompiForDonationTests(array $overrides = []): void
         'services.wompi.event_secret' => 'test_event_secret',
         'services.wompi.api_url' => 'https://sandbox.wompi.test/v1',
         'services.wompi.checkout_url' => 'https://checkout.wompi.test/p/',
+        'services.wompi.checkout_timeout_minutes' => 15,
     ], $overrides));
 }
 
@@ -217,7 +218,7 @@ test('ally can import donations through the unified donations controller', funct
     expect($importedDonations[1]->donor_email)->toBe('historico@example.com');
 });
 
-test('direct donations are created as pending and return a wompi checkout url', function () {
+test('direct donations are created as initiated and return a resumable wompi checkout url', function () {
     configureWompiForDonationTests();
 
     $client = User::factory()->create([
@@ -244,13 +245,16 @@ test('direct donations are created as pending and return a wompi checkout url', 
 
     $response
         ->assertCreated()
-        ->assertJsonPath('donation.status', Donation::STATUS_PENDING)
-        ->assertJsonPath('donation.gateway', Donation::GATEWAY_WOMPI);
+        ->assertJsonPath('donation.status', Donation::STATUS_INITIATED)
+        ->assertJsonPath('donation.gateway', Donation::GATEWAY_WOMPI)
+        ->assertJsonPath('donation.can_resume_checkout', true)
+        ->assertJsonPath('donation.can_cancel_checkout', true)
+        ->assertJsonPath('donation.can_refresh_status', false);
 
     $donation = Donation::query()->latest('id')->firstOrFail();
 
     expect($donation->payment_method)->toBeNull();
-    expect($donation->status)->toBe(Donation::STATUS_PENDING);
+    expect($donation->status)->toBe(Donation::STATUS_INITIATED);
     expect($donation->gateway)->toBe(Donation::GATEWAY_WOMPI);
     expect($donation->reference)->not->toBeNull();
     expect($response->json('checkout_url'))->toContain('https://checkout.wompi.test/p/?');
@@ -326,6 +330,128 @@ test('wompi checkout flow includes a backend generated reference and integrity s
     expect($query['reference'] ?? null)->toBe($donation->reference);
     expect($query['amount-in-cents'] ?? null)->toBe('10000000');
     expect($query['signature:integrity'] ?? null)->toBe($expectedSignature);
+});
+
+test('donations dashboard auto cancels stale checkouts without a wompi transaction', function () {
+    configureWompiForDonationTests(['services.wompi.checkout_timeout_minutes' => 10]);
+
+    $client = User::factory()->create([
+        'email_verified_at' => now(),
+        'role' => 'cliente',
+        'email' => 'stale@example.com',
+    ]);
+
+    $donation = Donation::create([
+        'donor_name' => 'Checkout abierto',
+        'donor_email' => $client->email,
+        'amount' => 30000,
+        'status' => Donation::STATUS_INITIATED,
+        'gateway' => Donation::GATEWAY_WOMPI,
+        'reference' => 'DON-STALE-001',
+        'gateway_payload' => [
+            'checkout' => [
+                'url' => 'https://checkout.wompi.test/p/?reference=DON-STALE-001',
+                'created_at' => now()->subMinutes(20)->toIso8601String(),
+            ],
+        ],
+    ]);
+
+    $this->actingAs($client)
+        ->get(route('donaciones.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Dashboard/Donaciones/index')
+            ->where('donations.0.id', $donation->id)
+            ->where('donations.0.status', Donation::STATUS_CANCELLED));
+
+    $donation->refresh();
+
+    expect($donation->status)->toBe(Donation::STATUS_CANCELLED);
+    expect($donation->cancelled_at)->not->toBeNull();
+});
+
+test('client can cancel an initiated checkout from the donations dashboard', function () {
+    configureWompiForDonationTests();
+
+    $client = User::factory()->create([
+        'email_verified_at' => now(),
+        'role' => 'cliente',
+        'email' => 'cancelar@example.com',
+    ]);
+
+    $donation = Donation::create([
+        'donor_name' => 'Cliente Cancelar',
+        'donor_email' => $client->email,
+        'amount' => 45000,
+        'status' => Donation::STATUS_INITIATED,
+        'gateway' => Donation::GATEWAY_WOMPI,
+        'reference' => 'DON-CANCELAR-001',
+        'gateway_payload' => [
+            'checkout' => [
+                'url' => 'https://checkout.wompi.test/p/?reference=DON-CANCELAR-001',
+                'created_at' => now()->subMinutes(2)->toIso8601String(),
+            ],
+        ],
+    ]);
+
+    $this->actingAs($client)
+        ->postJson(route('donaciones.cancel-checkout', $donation))
+        ->assertOk()
+        ->assertJsonPath('donation.status', Donation::STATUS_CANCELLED)
+        ->assertJsonPath('donation.can_resume_checkout', false);
+
+    $donation->refresh();
+
+    expect($donation->status)->toBe(Donation::STATUS_CANCELLED);
+    expect($donation->cancelled_at)->not->toBeNull();
+});
+
+test('pending donations can refresh their status from wompi without waiting for the webhook', function () {
+    configureWompiForDonationTests();
+
+    $client = User::factory()->create([
+        'email_verified_at' => now(),
+        'role' => 'cliente',
+        'email' => 'refresh@example.com',
+    ]);
+
+    $donation = Donation::create([
+        'donor_name' => 'Cliente Refresh',
+        'donor_email' => $client->email,
+        'amount' => 55000,
+        'status' => Donation::STATUS_PENDING,
+        'gateway' => Donation::GATEWAY_WOMPI,
+        'reference' => 'DON-REFRESH-001',
+        'gateway_transaction_id' => 'tx-refresh-001',
+        'gateway_payload' => [
+            'checkout' => [
+                'created_at' => now()->subMinutes(1)->toIso8601String(),
+            ],
+        ],
+    ]);
+
+    Http::fake([
+        'https://sandbox.wompi.test/v1/transactions/tx-refresh-001' => Http::response([
+            'data' => [
+                'id' => 'tx-refresh-001',
+                'reference' => $donation->reference,
+                'status' => 'DECLINED',
+                'amount_in_cents' => 5500000,
+                'payment_method_type' => 'PSE',
+            ],
+        ], 200),
+    ]);
+
+    $this->actingAs($client)
+        ->postJson(route('donaciones.refresh-status', $donation))
+        ->assertOk()
+        ->assertJsonPath('donation.status', Donation::STATUS_FAILED)
+        ->assertJsonPath('donation.can_refresh_status', false);
+
+    $donation->refresh();
+
+    expect($donation->status)->toBe(Donation::STATUS_FAILED);
+    expect($donation->failed_at)->not->toBeNull();
 });
 
 test('shelter payment receiver validation requires phone number for nequi', function () {

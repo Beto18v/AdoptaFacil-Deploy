@@ -2,7 +2,9 @@ import ChatbotWidget from '@/components/chatbot-widget';
 import { ExcelImportComponent, type ImportedDonationDraft } from '@/components/donations';
 import { ThemeSwitcher } from '@/components/theme-switcher';
 import AppLayout from '@/layouts/app-layout';
+import { backendJson } from '@/lib/http';
 import { generateDonationsReport } from '@/lib/report-generator';
+import { showToast } from '@/lib/toast';
 import { type BreadcrumbItem } from '@/types';
 import { Head, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
@@ -20,7 +22,7 @@ const formatCurrency = (amount: string | number | bigint) => {
     }).format(numericAmount);
 };
 
-type DonationStatus = 'pending' | 'completed' | 'cancelled' | 'failed';
+type DonationStatus = 'initiated' | 'pending' | 'completed' | 'cancelled' | 'failed';
 
 type DonationType = {
     id: number;
@@ -31,7 +33,18 @@ type DonationType = {
     created_at: string;
     description?: string;
     status: DonationStatus;
+    status_message?: string | null;
+    gateway?: string | null;
     reference?: string | null;
+    checkout_url?: string | null;
+    can_resume_checkout: boolean;
+    can_cancel_checkout: boolean;
+    can_refresh_status: boolean;
+};
+
+type DonationActionResponse = {
+    message?: string;
+    donation?: DonationType | null;
 };
 
 type ShelterType = {
@@ -63,6 +76,7 @@ type AuthUser = {
 };
 
 const STATUS_LABELS: Record<DonationStatus, string> = {
+    initiated: 'Checkout iniciado',
     pending: 'Pendiente',
     completed: 'Completada',
     cancelled: 'Cancelada',
@@ -70,6 +84,7 @@ const STATUS_LABELS: Record<DonationStatus, string> = {
 };
 
 const STATUS_BADGES: Record<DonationStatus, string> = {
+    initiated: 'bg-gradient-to-r from-sky-500 to-blue-600 text-white',
     pending: 'bg-gradient-to-r from-amber-500 to-orange-500 text-white',
     completed: 'bg-gradient-to-r from-green-500 to-green-600 text-white',
     cancelled: 'bg-gradient-to-r from-slate-500 to-slate-600 text-white',
@@ -113,7 +128,13 @@ const buildImportedDonations = (items: ImportedDonationDraft[], shelter: Shelter
         created_at: `${item.created_at}T12:00:00.000Z`,
         description: item.description,
         status: 'completed',
+        status_message: 'Registro importado manualmente.',
+        gateway: 'manual',
         reference: null,
+        checkout_url: null,
+        can_resume_checkout: false,
+        can_cancel_checkout: false,
+        can_refresh_status: false,
         shelter: {
             id: shelter.id,
             name: shelter.name,
@@ -121,119 +142,200 @@ const buildImportedDonations = (items: ImportedDonationDraft[], shelter: Shelter
     }));
 };
 
-const DonationsTable = ({ donations, userRole }: { donations: DonationType[]; userRole: string }) => (
-    <div className="group hover:shadow-3xl relative overflow-hidden rounded-3xl bg-white/95 shadow-2xl backdrop-blur-sm transition-all duration-300 dark:bg-gray-800/95">
-        <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-gradient-to-br from-blue-500/10 to-transparent"></div>
-        <div className="absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-gradient-to-tr from-purple-500/10 to-transparent"></div>
+const DonationsTable = ({
+    donations,
+    userRole,
+    actionDonationId,
+    onContinueCheckout,
+    onRefreshStatus,
+    onCancelCheckout,
+}: {
+    donations: DonationType[];
+    userRole: string;
+    actionDonationId?: number | null;
+    onContinueCheckout?: (donation: DonationType) => void;
+    onRefreshStatus?: (donation: DonationType) => void;
+    onCancelCheckout?: (donation: DonationType) => void;
+}) => {
+    const hasActionsColumn = donations.some((donation) => donation.can_resume_checkout || donation.can_cancel_checkout || donation.can_refresh_status);
 
-        <div className="relative p-6">
-            <div className="overflow-hidden rounded-2xl border border-gray-200/50 bg-white/50 shadow-lg dark:border-gray-700/50 dark:bg-gray-800/50">
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead>
-                            <tr className="border-b border-gray-200/50 bg-gradient-to-r from-gray-50/80 to-gray-100/80 dark:border-gray-700/50 dark:from-gray-700/50 dark:to-gray-600/50">
-                                <th className="px-6 py-4 text-left text-xs font-bold tracking-wider text-gray-700 uppercase dark:text-gray-300">
-                                    {userRole === 'cliente' ? 'Fundacion' : 'Donante'}
-                                </th>
-                                {userRole === 'admin' && (
+    return (
+        <div className="group hover:shadow-3xl relative overflow-hidden rounded-3xl bg-white/95 shadow-2xl backdrop-blur-sm transition-all duration-300 dark:bg-gray-800/95">
+            <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-gradient-to-br from-blue-500/10 to-transparent"></div>
+            <div className="absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-gradient-to-tr from-purple-500/10 to-transparent"></div>
+
+            <div className="relative p-6">
+                <div className="overflow-hidden rounded-2xl border border-gray-200/50 bg-white/50 shadow-lg dark:border-gray-700/50 dark:bg-gray-800/50">
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="border-b border-gray-200/50 bg-gradient-to-r from-gray-50/80 to-gray-100/80 dark:border-gray-700/50 dark:from-gray-700/50 dark:to-gray-600/50">
                                     <th className="px-6 py-4 text-left text-xs font-bold tracking-wider text-gray-700 uppercase dark:text-gray-300">
-                                        Fundacion
+                                        {userRole === 'cliente' ? 'Fundacion' : 'Donante'}
                                     </th>
-                                )}
-                                <th className="px-6 py-4 text-left text-xs font-bold tracking-wider text-gray-700 uppercase dark:text-gray-300">
-                                    Monto
-                                </th>
-                                <th className="px-6 py-4 text-left text-xs font-bold tracking-wider text-gray-700 uppercase dark:text-gray-300">
-                                    Estado
-                                </th>
-                                <th className="px-6 py-4 text-left text-xs font-bold tracking-wider text-gray-700 uppercase dark:text-gray-300">
-                                    Fecha
-                                </th>
-                                <th className="px-6 py-4 text-left text-xs font-bold tracking-wider text-gray-700 uppercase dark:text-gray-300">
-                                    Descripcion
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200/50 dark:divide-gray-700/50">
-                            {donations.map((donation) => (
-                                <tr
-                                    key={donation.id}
-                                    className="group transition-all duration-200 hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-purple-50/30 dark:hover:from-gray-700/30 dark:hover:to-gray-600/30"
-                                >
-                                    <td className="px-6 py-5 whitespace-nowrap">
-                                        <div className="font-semibold text-gray-900 transition-colors group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
-                                            {userRole === 'cliente' ? (donation.shelter?.name ?? 'N/A') : donation.donor_name}
-                                        </div>
-                                        {donation.reference && (
-                                            <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">Ref: {donation.reference}</div>
-                                        )}
-                                    </td>
                                     {userRole === 'admin' && (
-                                        <td className="px-6 py-5 whitespace-nowrap">
-                                            <div className="font-medium text-gray-600 dark:text-gray-300">{donation.shelter?.name ?? 'N/A'}</div>
-                                        </td>
+                                        <th className="px-6 py-4 text-left text-xs font-bold tracking-wider text-gray-700 uppercase dark:text-gray-300">
+                                            Fundacion
+                                        </th>
                                     )}
-                                    <td className="px-6 py-5 whitespace-nowrap">
-                                        <span className="inline-flex items-center rounded-full bg-gradient-to-r from-green-500 to-green-600 px-3 py-1 text-xs font-bold text-white shadow-lg">
-                                            {formatCurrency(donation.amount)}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-5 whitespace-nowrap">
-                                        <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold shadow-lg ${STATUS_BADGES[donation.status]}`}>
-                                            {STATUS_LABELS[donation.status]}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-5 font-medium whitespace-nowrap text-gray-600 dark:text-gray-300">
-                                        {new Date(donation.created_at)
-                                            .toLocaleDateString('es-ES', {
-                                                year: 'numeric',
-                                                month: '2-digit',
-                                                day: '2-digit',
-                                            })
-                                            .toString()}
-                                    </td>
-                                    <td className="px-6 py-5 whitespace-nowrap text-gray-600 dark:text-gray-300">
-                                        {donation.description ? (
-                                            <span className="text-sm font-medium">{donation.description}</span>
-                                        ) : (
-                                            <span className="text-sm text-gray-400 italic dark:text-gray-500">Sin descripcion</span>
-                                        )}
-                                    </td>
+                                    <th className="px-6 py-4 text-left text-xs font-bold tracking-wider text-gray-700 uppercase dark:text-gray-300">
+                                        Monto
+                                    </th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold tracking-wider text-gray-700 uppercase dark:text-gray-300">
+                                        Estado
+                                    </th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold tracking-wider text-gray-700 uppercase dark:text-gray-300">
+                                        Fecha
+                                    </th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold tracking-wider text-gray-700 uppercase dark:text-gray-300">
+                                        Descripcion
+                                    </th>
+                                    {hasActionsColumn && (
+                                        <th className="px-6 py-4 text-left text-xs font-bold tracking-wider text-gray-700 uppercase dark:text-gray-300">
+                                            Acciones
+                                        </th>
+                                    )}
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200/50 dark:divide-gray-700/50">
+                                {donations.map((donation) => {
+                                    const isProcessingAction = actionDonationId === donation.id;
 
-            {donations.length === 0 && (
-                <div className="py-12 text-center">
-                    <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700">
-                        <svg className="h-10 w-10 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
-                            />
-                        </svg>
+                                    return (
+                                        <tr
+                                            key={donation.id}
+                                            className="group transition-all duration-200 hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-purple-50/30 dark:hover:from-gray-700/30 dark:hover:to-gray-600/30"
+                                        >
+                                            <td className="px-6 py-5 whitespace-nowrap">
+                                                <div className="font-semibold text-gray-900 transition-colors group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
+                                                    {userRole === 'cliente' ? (donation.shelter?.name ?? 'N/A') : donation.donor_name}
+                                                </div>
+                                                {donation.reference && (
+                                                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">Ref: {donation.reference}</div>
+                                                )}
+                                            </td>
+                                            {userRole === 'admin' && (
+                                                <td className="px-6 py-5 whitespace-nowrap">
+                                                    <div className="font-medium text-gray-600 dark:text-gray-300">{donation.shelter?.name ?? 'N/A'}</div>
+                                                </td>
+                                            )}
+                                            <td className="px-6 py-5 whitespace-nowrap">
+                                                <span className="inline-flex items-center rounded-full bg-gradient-to-r from-green-500 to-green-600 px-3 py-1 text-xs font-bold text-white shadow-lg">
+                                                    {formatCurrency(donation.amount)}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-5">
+                                                <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold shadow-lg ${STATUS_BADGES[donation.status]}`}>
+                                                    {STATUS_LABELS[donation.status]}
+                                                </span>
+                                                {donation.status_message && (
+                                                    <div className="mt-2 max-w-xs text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                                                        {donation.status_message}
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-5 font-medium whitespace-nowrap text-gray-600 dark:text-gray-300">
+                                                {new Date(donation.created_at)
+                                                    .toLocaleDateString('es-ES', {
+                                                        year: 'numeric',
+                                                        month: '2-digit',
+                                                        day: '2-digit',
+                                                    })
+                                                    .toString()}
+                                            </td>
+                                            <td className="px-6 py-5 whitespace-nowrap text-gray-600 dark:text-gray-300">
+                                                {donation.description ? (
+                                                    <span className="text-sm font-medium">{donation.description}</span>
+                                                ) : (
+                                                    <span className="text-sm text-gray-400 italic dark:text-gray-500">Sin descripcion</span>
+                                                )}
+                                            </td>
+                                            {hasActionsColumn && (
+                                                <td className="px-6 py-5">
+                                                    <div className="flex min-w-[220px] flex-wrap gap-2">
+                                                        {donation.can_resume_checkout && onContinueCheckout && donation.checkout_url && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => onContinueCheckout(donation)}
+                                                                disabled={isProcessingAction}
+                                                                className="rounded-2xl bg-gradient-to-r from-sky-500 to-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
+                                                            >
+                                                                Continuar pago
+                                                            </button>
+                                                        )}
+                                                        {donation.can_refresh_status && onRefreshStatus && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => onRefreshStatus(donation)}
+                                                                disabled={isProcessingAction}
+                                                                className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 shadow-sm transition hover:scale-[1.02] dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300 disabled:cursor-not-allowed disabled:opacity-60"
+                                                            >
+                                                                Actualizar estado
+                                                            </button>
+                                                        )}
+                                                        {donation.can_cancel_checkout && onCancelCheckout && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => onCancelCheckout(donation)}
+                                                                disabled={isProcessingAction}
+                                                                className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:scale-[1.02] dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
+                                                            >
+                                                                Cancelar
+                                                            </button>
+                                                        )}
+                                                        {isProcessingAction && (
+                                                            <span className="inline-flex items-center text-xs font-semibold text-gray-500 dark:text-gray-400">
+                                                                Procesando...
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            )}
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
                     </div>
-                    <h3 className="mb-2 text-lg font-semibold text-gray-600 dark:text-gray-300">No hay donaciones para mostrar</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Aun no se han registrado donaciones en el sistema</p>
                 </div>
-            )}
+
+                {donations.length === 0 && (
+                    <div className="py-12 text-center">
+                        <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700">
+                            <svg className="h-10 w-10 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
+                                />
+                            </svg>
+                        </div>
+                        <h3 className="mb-2 text-lg font-semibold text-gray-600 dark:text-gray-300">No hay donaciones para mostrar</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Aun no se han registrado donaciones en el sistema</p>
+                    </div>
+                )}
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 const ClientView = ({
     donations,
     stats,
     onDonateClick,
+    actionDonationId,
+    onContinueCheckout,
+    onRefreshStatus,
+    onCancelCheckout,
 }: {
     donations: DonationType[];
     stats: { totalAmount: number; donationsCount: number };
     onDonateClick: () => void;
+    actionDonationId: number | null;
+    onContinueCheckout: (donation: DonationType) => void;
+    onRefreshStatus: (donation: DonationType) => void;
+    onCancelCheckout: (donation: DonationType) => void;
 }) => (
     <>
         <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -281,7 +383,14 @@ const ClientView = ({
         </div>
 
         <div className="mb-8">
-            <DonationsTable donations={donations} userRole="cliente" />
+            <DonationsTable
+                donations={donations}
+                userRole="cliente"
+                actionDonationId={actionDonationId}
+                onContinueCheckout={onContinueCheckout}
+                onRefreshStatus={onRefreshStatus}
+                onCancelCheckout={onCancelCheckout}
+            />
         </div>
 
         <div className="text-center">
@@ -313,6 +422,8 @@ const AllyAdminView = ({
     paymentMethod,
     onEditPaymentMethod,
     onImportSuccess,
+    actionDonationId,
+    onRefreshStatus,
 }: {
     donations: DonationType[];
     stats: { totalAmount: number; donorsCount: number; donationsCount: number };
@@ -320,6 +431,8 @@ const AllyAdminView = ({
     paymentMethod: ShelterPaymentMethod | null;
     onEditPaymentMethod: () => void;
     onImportSuccess: (importedDonations: ImportedDonationDraft[]) => void;
+    actionDonationId: number | null;
+    onRefreshStatus: (donation: DonationType) => void;
 }) => (
     <>
         <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -435,7 +548,7 @@ const AllyAdminView = ({
             </div>
         )}
 
-        <DonationsTable donations={donations} userRole={userRole} />
+        <DonationsTable donations={donations} userRole={userRole} actionDonationId={actionDonationId} onRefreshStatus={onRefreshStatus} />
     </>
 );
 
@@ -453,6 +566,7 @@ export default function DonationsSummary() {
     const [shelterPaymentMethodState, setShelterPaymentMethodState] = useState<ShelterPaymentMethod | null>(shelterPaymentMethod ?? null);
     const [showDonationFormModal, setShowDonationFormModal] = useState(false);
     const [showShelterPaymentFormModal, setShowShelterPaymentFormModal] = useState(false);
+    const [actionDonationId, setActionDonationId] = useState<number | null>(null);
 
     useEffect(() => {
         setDonationsState(donations);
@@ -475,6 +589,53 @@ export default function DonationsSummary() {
             id: current?.id,
             ...paymentMethod,
         }));
+    };
+
+    const updateDonationState = (updatedDonation: DonationType) => {
+        setDonationsState((current) => current.map((donation) => (donation.id === updatedDonation.id ? updatedDonation : donation)));
+    };
+
+    const executeDonationAction = async (donation: DonationType, endpoint: string) => {
+        setActionDonationId(donation.id);
+
+        try {
+            const { response, data } = await backendJson<DonationActionResponse>(endpoint, {
+                method: 'POST',
+            });
+
+            if (data?.donation) {
+                updateDonationState(data.donation);
+            }
+
+            if (response.ok) {
+                showToast(data?.message || 'Estado actualizado.', 'success');
+                return;
+            }
+
+            showToast(data?.message || 'No fue posible actualizar la donacion.', 'warning');
+        } catch (error) {
+            console.error('Error ejecutando accion de donacion:', error);
+            showToast('Error de conexion al actualizar la donacion.', 'error');
+        } finally {
+            setActionDonationId(null);
+        }
+    };
+
+    const handleContinueCheckout = (donation: DonationType) => {
+        if (!donation.checkout_url) {
+            showToast('Esta donacion ya no tiene un checkout disponible para continuar.', 'warning');
+            return;
+        }
+
+        window.location.assign(donation.checkout_url);
+    };
+
+    const handleRefreshStatus = async (donation: DonationType) => {
+        await executeDonationAction(donation, route('donaciones.refresh-status', donation.id));
+    };
+
+    const handleCancelCheckout = async (donation: DonationType) => {
+        await executeDonationAction(donation, route('donaciones.cancel-checkout', donation.id));
     };
 
     const completedDonations = donationsState.filter((donation) => donation.status === 'completed');
@@ -507,7 +668,17 @@ export default function DonationsSummary() {
         }
 
         if (user.role === 'cliente') {
-            return <ClientView donations={donationsState} stats={stats} onDonateClick={() => setShowDonationFormModal(true)} />;
+            return (
+                <ClientView
+                    donations={donationsState}
+                    stats={stats}
+                    onDonateClick={() => setShowDonationFormModal(true)}
+                    actionDonationId={actionDonationId}
+                    onContinueCheckout={handleContinueCheckout}
+                    onRefreshStatus={handleRefreshStatus}
+                    onCancelCheckout={handleCancelCheckout}
+                />
+            );
         }
 
         if (user.role === 'admin' || (user.role === 'aliado' && user.shelter)) {
@@ -519,6 +690,8 @@ export default function DonationsSummary() {
                     paymentMethod={shelterPaymentMethodState}
                     onEditPaymentMethod={() => setShowShelterPaymentFormModal(true)}
                     onImportSuccess={handleImportSuccess}
+                    actionDonationId={actionDonationId}
+                    onRefreshStatus={handleRefreshStatus}
                 />
             );
         }

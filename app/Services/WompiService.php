@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Donation;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -34,6 +35,11 @@ class WompiService
     public function apiUrl(): string
     {
         return rtrim((string) config('services.wompi.api_url', 'https://production.wompi.co/v1'), '/');
+    }
+
+    public function checkoutTimeoutMinutes(): int
+    {
+        return max(1, (int) config('services.wompi.checkout_timeout_minutes', 15));
     }
 
     public function generateReference(): string
@@ -90,6 +96,100 @@ class WompiService
             'checkout_url' => $this->checkoutUrl().'?'.Arr::query($query),
             'query' => $query,
         ];
+    }
+
+    public function buildCheckoutUrlFromDonation(Donation $donation): ?string
+    {
+        $checkoutUrl = data_get($donation->gateway_payload, 'checkout.url');
+
+        if (filled($checkoutUrl)) {
+            return (string) $checkoutUrl;
+        }
+
+        $query = data_get($donation->gateway_payload, 'checkout.query');
+
+        if (! is_array($query) || $query === []) {
+            return null;
+        }
+
+        return $this->checkoutUrl().'?'.Arr::query($query);
+    }
+
+    public function canResumeCheckout(Donation $donation): bool
+    {
+        if ($donation->gateway !== Donation::GATEWAY_WOMPI) {
+            return false;
+        }
+
+        if (! in_array($donation->status, Donation::openStatuses(), true)) {
+            return false;
+        }
+
+        if (filled($donation->gateway_transaction_id) || $this->hasExpiredCheckout($donation)) {
+            return false;
+        }
+
+        return filled($this->buildCheckoutUrlFromDonation($donation));
+    }
+
+    public function canRefreshStatus(Donation $donation): bool
+    {
+        if ($donation->gateway !== Donation::GATEWAY_WOMPI) {
+            return false;
+        }
+
+        if (! in_array($donation->status, Donation::openStatuses(), true)) {
+            return false;
+        }
+
+        return filled($donation->gateway_transaction_id);
+    }
+
+    public function hasExpiredCheckout(Donation $donation): bool
+    {
+        if (filled($donation->gateway_transaction_id)) {
+            return false;
+        }
+
+        $checkoutCreatedAt = data_get($donation->gateway_payload, 'checkout.created_at');
+
+        if (blank($checkoutCreatedAt)) {
+            return false;
+        }
+
+        try {
+            return Carbon::parse((string) $checkoutCreatedAt)
+                ->addMinutes($this->checkoutTimeoutMinutes())
+                ->isPast();
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    public function cancelAbandonedCheckout(Donation $donation, string $reason = 'checkout_abandoned'): Donation
+    {
+        if (in_array($donation->status, Donation::finalStatuses(), true)) {
+            return $donation;
+        }
+
+        $gatewayPayload = $donation->gateway_payload ?? [];
+        $checkoutPayload = is_array($gatewayPayload['checkout'] ?? null) ? $gatewayPayload['checkout'] : [];
+        $checkoutPayload['cancelled_at'] = now()->toIso8601String();
+        $checkoutPayload['cancellation_reason'] = $reason;
+        $gatewayPayload['checkout'] = $checkoutPayload;
+
+        $donation->forceFill([
+            'status' => Donation::STATUS_CANCELLED,
+            'gateway' => Donation::GATEWAY_WOMPI,
+            'gateway_payload' => $gatewayPayload,
+            'cancelled_at' => $donation->cancelled_at ?? now(),
+            'paid_at' => null,
+            'failed_at' => null,
+        ]);
+
+        $donation->save();
+
+        return $donation->refresh();
     }
 
     /**
@@ -194,6 +294,43 @@ class WompiService
         ]);
 
         return $donation->refresh();
+    }
+
+    public function syncOpenDonation(Donation $donation): Donation
+    {
+        if ($donation->gateway !== Donation::GATEWAY_WOMPI) {
+            return $donation;
+        }
+
+        if (in_array($donation->status, Donation::finalStatuses(), true)) {
+            return $donation;
+        }
+
+        if ($this->hasExpiredCheckout($donation)) {
+            return $this->cancelAbandonedCheckout($donation, 'checkout_timeout');
+        }
+
+        if (! $this->canRefreshStatus($donation)) {
+            return $donation;
+        }
+
+        try {
+            $transaction = $this->getTransaction((string) $donation->gateway_transaction_id);
+        } catch (\Throwable $exception) {
+            Log::warning('Unable to refresh Wompi donation status', [
+                'donation_id' => $donation->id,
+                'gateway_transaction_id' => $donation->gateway_transaction_id,
+                'message' => $exception->getMessage(),
+            ]);
+
+            return $donation;
+        }
+
+        return $this->syncDonationFromTransaction($donation, $transaction, [
+            'status_refresh' => [
+                'checked_at' => now()->toIso8601String(),
+            ],
+        ]);
     }
 
     private function integritySecret(): ?string

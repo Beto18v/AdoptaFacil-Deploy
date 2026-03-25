@@ -102,7 +102,7 @@ const parseDate = (value: unknown, rowNumber: number): string => {
         return raw;
     }
 
-    const latinDate = raw.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    const latinDate = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
     if (latinDate) {
         return formatDate(Number(latinDate[3]), Number(latinDate[2]), Number(latinDate[1]));
     }

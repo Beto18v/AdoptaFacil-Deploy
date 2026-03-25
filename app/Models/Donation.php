@@ -10,6 +10,8 @@ class Donation extends Model
 {
     use HasFactory;
 
+    public const STATUS_INITIATED = 'initiated';
+
     public const STATUS_PENDING = 'pending';
 
     public const STATUS_COMPLETED = 'completed';
@@ -65,6 +67,17 @@ class Donation extends Model
             self::STATUS_COMPLETED,
             self::STATUS_CANCELLED,
             self::STATUS_FAILED,
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function openStatuses(): array
+    {
+        return [
+            self::STATUS_INITIATED,
+            self::STATUS_PENDING,
         ];
     }
 
