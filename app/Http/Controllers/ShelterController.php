@@ -2,27 +2,48 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Donation;
 use App\Models\Shelter;
 use App\Models\ShelterPaymentMethod;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class ShelterController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $cityFilter = (string) Str::of((string) $request->query('ciudad'))->trim()->squish();
+        $selectedCity = $cityFilter !== '' ? $cityFilter : null;
+
         $shelters = Shelter::query()
             ->visible()
             ->with('user')
-            ->withCount('donations')
+            ->withCount([
+                'donations as donations_count' => fn ($query) => $query->where('status', Donation::STATUS_COMPLETED),
+            ])
             ->orderBy('donations_count', 'desc')
-            ->get();
+            ->get()
+            ->map(function (Shelter $shelter) {
+                $shelter->city = (string) Str::of((string) $shelter->city)->trim()->squish();
+
+                return $shelter;
+            });
+
+        if ($cityFilter !== '') {
+            $shelters = $shelters
+                ->filter(fn (Shelter $shelter) => Str::lower($shelter->city) === Str::lower($cityFilter))
+                ->values();
+
+            $selectedCity = $shelters->first()?->city ?? $selectedCity;
+        }
 
         return Inertia::render('refugios', [
             'shelters' => $shelters,
+            'selectedCity' => $selectedCity,
         ]);
     }
 
@@ -147,9 +168,9 @@ class ShelterController extends Controller
         $attributes = [
             'name' => $validatedData['name'],
             'description' => $validatedData['description'],
-            'address' => $validatedData['address'],
-            'city' => $validatedData['city'],
-            'phone' => $validatedData['phone'],
+            'address' => (string) Str::of($validatedData['address'])->trim()->squish(),
+            'city' => (string) Str::of($validatedData['city'])->trim()->squish(),
+            'phone' => (string) Str::of($validatedData['phone'])->trim()->squish(),
             'latitude' => $validatedData['latitude'],
             'longitude' => $validatedData['longitude'],
             'bank_name' => $isBankAccount ? $validatedData['bank_name'] : null,

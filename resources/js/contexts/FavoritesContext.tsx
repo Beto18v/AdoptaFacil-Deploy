@@ -1,27 +1,24 @@
-import { router } from '@inertiajs/react';
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { backendJson } from '@/lib/http';
 import { showToast } from '@/lib/toast';
+import { router } from '@inertiajs/react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 interface FavoritesContextType {
     favoriteIds: number[];
     isLoading: boolean;
     isInitialized: boolean;
     isFavorite: (mascotaId: number) => boolean;
-    toggleFavorite: (mascotaId: number) => Promise<void>;
-    addToFavorites: (mascotaId: number) => Promise<void>;
-    removeFromFavorites: (mascotaId: number) => Promise<void>;
+    toggleFavorite: (mascotaId: number) => Promise<boolean>;
+    addToFavorites: (mascotaId: number) => Promise<boolean>;
+    removeFromFavorites: (mascotaId: number) => Promise<boolean>;
     refreshFavorites: () => Promise<void>;
     showNotification?: (message: string, type: 'error' | 'success' | 'info') => void;
 }
 
 const FavoritesContext = createContext<FavoritesContextType | undefined>(undefined);
 
-// Helper function para manejar errores de autenticación
 const handleAuthError = () => {
-    // Guardar la URL actual para redirigir después del login
     sessionStorage.setItem('intended_url', window.location.pathname);
-    // Redirigir al login
     router.visit('/login');
 };
 
@@ -35,6 +32,7 @@ export function FavoritesProvider({
     const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
+
     const notify = useCallback(
         (message: string, type: 'error' | 'success' | 'info') => {
             if (showNotification) {
@@ -47,7 +45,6 @@ export function FavoritesProvider({
         [showNotification],
     );
 
-    // Set para búsquedas más rápidas
     const favoriteSet = useMemo(() => new Set(favoriteIds), [favoriteIds]);
 
     const refreshFavorites = useCallback(async () => {
@@ -73,7 +70,6 @@ export function FavoritesProvider({
         }
     }, []);
 
-    // Cargar favoritos al inicializar el contexto
     useEffect(() => {
         refreshFavorites();
     }, [refreshFavorites]);
@@ -87,16 +83,17 @@ export function FavoritesProvider({
 
     const addToFavorites = useCallback(
         async (mascotaId: number) => {
-            // Evitar duplicados y llamadas innecesarias
-            if (favoriteSet.has(mascotaId) || isLoading) return;
+            if (favoriteSet.has(mascotaId) || isLoading) {
+                return true;
+            }
 
-            // Actualización optimista - actualizar UI inmediatamente
             setFavoriteIds((prev) => {
                 if (prev.includes(mascotaId)) return prev;
                 return [...prev, mascotaId];
             });
 
             setIsLoading(true);
+
             try {
                 const { response, data } = await backendJson<{ message?: string }>('/favoritos', {
                     method: 'POST',
@@ -106,7 +103,7 @@ export function FavoritesProvider({
                 if (response.status === 401) {
                     setFavoriteIds((prev) => prev.filter((id) => id !== mascotaId));
                     handleAuthError();
-                    return;
+                    return false;
                 }
 
                 if (!response.ok) {
@@ -114,27 +111,26 @@ export function FavoritesProvider({
                     console.error('Error al agregar a favoritos:', data?.message);
 
                     if (response.status === 409) {
-                        return;
+                        return true;
                     }
 
-                    const message = data?.message || 'Error al agregar a favoritos';
-                    notify(message, 'error');
-                } else {
-                    notify('Agregado a favoritos', 'success');
+                    notify(data?.message || 'Error al agregar a favoritos', 'error');
+                    return false;
                 }
+
+                notify('Agregado a favoritos', 'success');
+                return true;
             } catch (error) {
-                // Revertir cambio optimista en caso de error
                 setFavoriteIds((prev) => prev.filter((id) => id !== mascotaId));
                 console.error('Error al agregar a favoritos:', error);
 
-                // Verificar si el error es por autenticación
                 if (error instanceof TypeError && error.message.includes('fetch')) {
                     handleAuthError();
-                    return;
-                } else {
-                    const message = 'Error de conexión al agregar a favoritos';
-                    notify(message, 'error');
+                    return false;
                 }
+
+                notify('Error de conexion al agregar a favoritos', 'error');
+                return false;
             } finally {
                 setIsLoading(false);
             }
@@ -144,15 +140,14 @@ export function FavoritesProvider({
 
     const removeFromFavorites = useCallback(
         async (mascotaId: number) => {
-            // Evitar llamadas innecesarias
-            if (!favoriteSet.has(mascotaId) || isLoading) return;
+            if (!favoriteSet.has(mascotaId) || isLoading) {
+                return true;
+            }
 
-            // Actualización optimista - actualizar UI inmediatamente
-            setFavoriteIds((prev) => {
-                return prev.filter((id) => id !== mascotaId);
-            });
+            setFavoriteIds((prev) => prev.filter((id) => id !== mascotaId));
 
             setIsLoading(true);
+
             try {
                 const { response, data } = await backendJson<{ message?: string }>('/favoritos', {
                     method: 'DELETE',
@@ -165,7 +160,7 @@ export function FavoritesProvider({
                         return [...prev, mascotaId];
                     });
                     handleAuthError();
-                    return;
+                    return false;
                 }
 
                 if (!response.ok) {
@@ -176,28 +171,28 @@ export function FavoritesProvider({
                     console.error('Error al remover de favoritos:', data?.message);
 
                     if (response.status === 404) {
-                        return;
+                        return true;
                     }
 
-                    const message = data?.message || 'Error al remover de favoritos';
-                    notify(message, 'error');
+                    notify(data?.message || 'Error al remover de favoritos', 'error');
+                    return false;
                 }
+
+                return true;
             } catch (error) {
-                // Revertir cambio optimista en caso de error
                 setFavoriteIds((prev) => {
                     if (prev.includes(mascotaId)) return prev;
                     return [...prev, mascotaId];
                 });
                 console.error('Error al remover de favoritos:', error);
 
-                // Verificar si el error es por autenticación
                 if (error instanceof TypeError && error.message.includes('fetch')) {
                     handleAuthError();
-                    return;
-                } else {
-                    const message = 'Error de conexión al remover de favoritos';
-                    notify(message, 'error');
+                    return false;
                 }
+
+                notify('Error de conexion al remover de favoritos', 'error');
+                return false;
             } finally {
                 setIsLoading(false);
             }
@@ -208,33 +203,39 @@ export function FavoritesProvider({
     const toggleFavorite = useCallback(
         async (mascotaId: number) => {
             if (isFavorite(mascotaId)) {
-                await removeFromFavorites(mascotaId);
-            } else {
-                await addToFavorites(mascotaId);
+                return removeFromFavorites(mascotaId);
             }
+
+            return addToFavorites(mascotaId);
         },
         [isFavorite, addToFavorites, removeFromFavorites],
     );
 
-    const value = {
-        favoriteIds,
-        isLoading,
-        isInitialized,
-        isFavorite,
-        toggleFavorite,
-        addToFavorites,
-        removeFromFavorites,
-        refreshFavorites,
-        showNotification,
-    };
-
-    return <FavoritesContext.Provider value={value}>{children}</FavoritesContext.Provider>;
+    return (
+        <FavoritesContext.Provider
+            value={{
+                favoriteIds,
+                isLoading,
+                isInitialized,
+                isFavorite,
+                toggleFavorite,
+                addToFavorites,
+                removeFromFavorites,
+                refreshFavorites,
+                showNotification,
+            }}
+        >
+            {children}
+        </FavoritesContext.Provider>
+    );
 }
 
 export function useFavorites() {
     const context = useContext(FavoritesContext);
+
     if (context === undefined) {
         throw new Error('useFavorites must be used within a FavoritesProvider');
     }
+
     return context;
 }

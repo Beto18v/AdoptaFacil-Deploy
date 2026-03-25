@@ -3,8 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LocationPicker } from '@/components/ui/location-picker';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { COLOMBIA_CITIES } from '@/lib/colombia-cities';
 import { useForm, usePage } from '@inertiajs/react';
-import { FormEventHandler } from 'react';
+import { FormEventHandler, useState } from 'react';
 
 type PaymentReceiverType = 'bank_account' | 'nequi' | 'daviplata';
 type AccountType = 'Ahorros' | 'Corriente';
@@ -48,6 +50,9 @@ export default function FormularioFundacion({
     const page = usePage();
     const auth = (page.props as unknown as { auth: { user?: { email?: string } } }).auth;
     const isEditing = Boolean(shelter);
+    const [isLocationResolved, setIsLocationResolved] = useState(
+        () => compact || Boolean(shelter?.address && shelter?.city && shelter?.latitude !== null && shelter?.longitude !== null),
+    );
 
     const { data, setData, post, put, processing, errors } = useForm({
         name: shelter?.name ?? '',
@@ -69,6 +74,9 @@ export default function FormularioFundacion({
 
     const isBankAccount = data.payment_receiver_type === 'bank_account';
     const isDigitalWallet = data.payment_receiver_type === 'nequi' || data.payment_receiver_type === 'daviplata';
+    const locationSearchQuery = data.address.trim() && data.city.trim() ? `${data.address.trim()}, ${data.city.trim()}` : '';
+    const hasCurrentCityOption = COLOMBIA_CITIES.some((city) => city === data.city);
+    const cityOptions = data.city && !hasCurrentCityOption ? [data.city, ...COLOMBIA_CITIES] : COLOMBIA_CITIES;
 
     const buildSavedPaymentMethod = (): ShelterPaymentMethodData => ({
         type: data.payment_receiver_type,
@@ -83,6 +91,20 @@ export default function FormularioFundacion({
     const handleLocationChange = (lat: number, lng: number) => {
         setData('latitude', lat);
         setData('longitude', lng);
+    };
+
+    const handleAddressChange = (value: string) => {
+        setData('address', value);
+        if (!compact) {
+            setIsLocationResolved(false);
+        }
+    };
+
+    const handleCityChange = (value: string) => {
+        setData('city', value);
+        if (!compact) {
+            setIsLocationResolved(false);
+        }
     };
 
     const submit: FormEventHandler = (e) => {
@@ -213,7 +235,7 @@ export default function FormularioFundacion({
                                         id="address"
                                         name="address"
                                         value={data.address}
-                                        onChange={(e) => setData('address', e.target.value)}
+                                        onChange={(e) => handleAddressChange(e.target.value)}
                                         className="w-full rounded-xl border-2 border-gray-300 bg-gradient-to-r from-white to-gray-50 p-4 text-gray-800 shadow-lg transition-all duration-200 focus:border-green-500 focus:ring-4 focus:ring-green-200 dark:border-gray-600 dark:from-gray-700 dark:to-gray-800 dark:text-white dark:focus:border-green-400 dark:focus:ring-green-800/30"
                                         placeholder="Ej: Calle 123 #45-67"
                                         required
@@ -224,15 +246,21 @@ export default function FormularioFundacion({
                                     <Label htmlFor="city" className="mb-3 block text-sm font-bold text-gray-700 dark:text-gray-300">
                                         Ciudad
                                     </Label>
-                                    <Input
-                                        id="city"
-                                        name="city"
-                                        value={data.city}
-                                        onChange={(e) => setData('city', e.target.value)}
-                                        className="w-full rounded-xl border-2 border-gray-300 bg-gradient-to-r from-white to-gray-50 p-4 text-gray-800 shadow-lg transition-all duration-200 focus:border-green-500 focus:ring-4 focus:ring-green-200 dark:border-gray-600 dark:from-gray-700 dark:to-gray-800 dark:text-white dark:focus:border-green-400 dark:focus:ring-green-800/30"
-                                        placeholder="Ej: Bogota"
-                                        required
-                                    />
+                                    <Select value={data.city} onValueChange={handleCityChange}>
+                                        <SelectTrigger
+                                            id="city"
+                                            className="h-[35px] w-full rounded-xl border-2 border-gray-300 bg-gradient-to-r from-white to-gray-50 px-4 text-left text-base text-gray-800 shadow-lg transition-all duration-200 focus:border-green-500 focus:ring-4 focus:ring-green-200 dark:border-gray-600 dark:from-gray-700 dark:to-gray-800 dark:text-white dark:focus:border-green-400 dark:focus:ring-green-800/30"
+                                        >
+                                            <SelectValue placeholder="Selecciona una ciudad" />
+                                        </SelectTrigger>
+                                        <SelectContent className="max-h-72 rounded-xl border-2 border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800">
+                                            {cityOptions.map((city) => (
+                                                <SelectItem key={city} value={city}>
+                                                    {city}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                     <InputError message={errors.city} className="mt-2" />
                                 </div>
                                 <div className="md:col-span-2">
@@ -254,11 +282,22 @@ export default function FormularioFundacion({
                             <div className="relative mt-8">
                                 <Label className="mb-4 block text-sm font-bold text-gray-700 dark:text-gray-300">Ubicacion en el mapa</Label>
                                 <div className="rounded-2xl border-2 border-gray-300/50 bg-gradient-to-br from-gray-50/50 to-white p-4 shadow-inner dark:border-gray-600/30 dark:from-gray-800/50 dark:to-gray-700/50">
-                                    <LocationPicker initialLat={data.latitude} initialLng={data.longitude} onLocationChange={handleLocationChange} />
+                                    <LocationPicker
+                                        initialLat={data.latitude}
+                                        initialLng={data.longitude}
+                                        onLocationChange={handleLocationChange}
+                                        onResolutionChange={setIsLocationResolved}
+                                        searchQuery={locationSearchQuery}
+                                    />
                                 </div>
                                 <div className="mt-3 rounded-xl bg-gray-100/70 p-3 text-center text-xs font-medium text-gray-600 dark:bg-gray-800/70 dark:text-gray-400">
                                     Coordenadas: {data.latitude.toFixed(6)}, {data.longitude.toFixed(6)}
                                 </div>
+                                {!isLocationResolved && (
+                                    <p className="mt-3 text-sm font-medium text-amber-700 dark:text-amber-300">
+                                        Ingresa una direccion real y selecciona una ciudad valida para ubicar automaticamente el refugio.
+                                    </p>
+                                )}
                                 <InputError message={errors.latitude} className="mt-2" />
                                 <InputError message={errors.longitude} className="mt-2" />
                             </div>
@@ -425,7 +464,7 @@ export default function FormularioFundacion({
                 <div className={`flex ${compact ? 'justify-end pt-2' : 'justify-center pt-8'}`}>
                     <Button
                         type="submit"
-                        disabled={processing}
+                        disabled={processing || (!compact && !isLocationResolved)}
                         className={`group hover:shadow-3xl relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-500 via-purple-600 to-green-500 font-bold text-white shadow-2xl transition-all duration-300 hover:scale-105 disabled:scale-100 disabled:opacity-50 ${
                             compact ? 'w-full px-8 py-3 text-base md:w-auto' : 'w-full px-12 py-4 text-lg md:w-auto'
                         }`}

@@ -29,6 +29,7 @@ interface Mascota {
     especie: string;
     raza?: string;
     edad: number;
+    edad_formateada?: string;
     sexo: string; // <-- AÑADIDO
     ciudad: string; // <-- AÑADIDO
     descripcion: string;
@@ -111,6 +112,7 @@ export default function Mascotas({ mascotas = [] }: MascotasProps) {
                 especie: normalizeEspecieLabel(mascota.especie),
                 raza: mascota.raza,
                 edad: mascota.edad,
+                edadTexto: mascota.edad_formateada,
                 sexo: mascota.sexo, // <-- AÑADIDO
                 ciudad: mascota.ciudad, // <-- AÑADIDO
                 descripcion: mascota.descripcion,

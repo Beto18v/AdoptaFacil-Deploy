@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Carbon\Carbon;
 
 /**
  * Modelo de mascotas publicadas.
@@ -17,31 +17,43 @@ class Mascota extends Model
     use HasFactory;
 
     /**
+     * Accesores expuestos en respuestas JSON.
+     *
+     * @var array<int, string>
+     */
+    protected $appends = [
+        'edad_formateada',
+    ];
+
+    /**
      * Campos asignables en masa
+     *
      * @var array<int, string>
      */
     protected $fillable = [
         'nombre',
         'especie',
         'raza',
-        'edad', // Almacenará años calculados automáticamente
-        'fecha_nacimiento', // Campo principal para calcular edad
+        'edad',
+        'fecha_nacimiento',
         'sexo',
         'ciudad',
         'descripcion',
-        'imagen', // Imagen principal (compatibilidad)
+        'imagen',
         'user_id',
     ];
 
     /**
-     * Campos que deben ser convertidos a tipos específicos
+     * Campos que deben ser convertidos a tipos especificos
+     *
+     * @var array<string, string>
      */
     protected $casts = [
         'fecha_nacimiento' => 'date',
     ];
 
     /**
-     * Calcular y actualizar edad en años automáticamente al guardar
+     * Calcular y actualizar edad en anos automaticamente al guardar
      */
     protected static function booted()
     {
@@ -53,7 +65,7 @@ class Mascota extends Model
     }
 
     /**
-     * Obtener edad en años (desde la base de datos o calculada)
+     * Obtener edad en anos desde la base de datos o calculada
      */
     public function getEdadAnosAttribute(): int
     {
@@ -61,11 +73,11 @@ class Mascota extends Model
             return Carbon::parse($this->fecha_nacimiento)->diffInYears(Carbon::now());
         }
 
-        return $this->edad ?? 0;
+        return (int) ($this->edad ?? 0);
     }
 
     /**
-     * Obtener edad en meses para cálculos detallados
+     * Obtener edad en meses para calculos detallados
      */
     public function getEdadMesesAttribute(): int
     {
@@ -73,36 +85,82 @@ class Mascota extends Model
             return Carbon::parse($this->fecha_nacimiento)->diffInMonths(Carbon::now());
         }
 
-        return ($this->edad ?? 0) * 12; // Convertir años a meses aproximados
+        return (int) round(((float) ($this->edad ?? 0)) * 12);
     }
 
     /**
-     * Formato de edad legible con años y meses exactos
+     * Formato de edad legible con anos, meses y dias.
      */
     public function getEdadFormateadaAttribute(): string
     {
-        if (!$this->fecha_nacimiento) {
-            $años = $this->edad ?? 0;
-            return $años === 1 ? "1 año" : "{$años} años";
+        if ($this->fecha_nacimiento) {
+            $birthDate = Carbon::parse($this->fecha_nacimiento)->startOfDay();
+            $today = Carbon::now()->startOfDay();
+
+            if ($birthDate->greaterThan($today)) {
+                return 'Edad no disponible';
+            }
+
+            $difference = $birthDate->diff($today);
+
+            return $this->formatAgeParts($difference->y, $difference->m, $difference->d);
         }
 
-        $fechaNac = Carbon::parse($this->fecha_nacimiento);
-        $ahora = Carbon::now();
-
-        $años = $fechaNac->diffInYears($ahora);
-        $meses = $fechaNac->copy()->addYears($años)->diffInMonths($ahora);
-
-        if ($años > 0) {
-            return $años === 1
-                ? "1 año" . ($meses > 0 ? " y {$meses} " . ($meses === 1 ? "mes" : "meses") : "")
-                : "{$años} años" . ($meses > 0 ? " y {$meses} " . ($meses === 1 ? "mes" : "meses") : "");
+        if ($this->edad === null || $this->edad === '' || !is_numeric($this->edad)) {
+            return 'Edad no especificada';
         }
 
-        return $meses === 1 ? "1 mes" : "{$meses} meses";
+        return $this->formatApproximateAgeFromYears((float) $this->edad);
+    }
+
+    private function formatApproximateAgeFromYears(float $ageInYears): string
+    {
+        if ($ageInYears < 0) {
+            return 'Edad no disponible';
+        }
+
+        $totalDays = max(0, (int) round($ageInYears * 365));
+        $years = intdiv($totalDays, 365);
+        $remainingDays = $totalDays % 365;
+        $months = intdiv($remainingDays, 30);
+        $days = $remainingDays % 30;
+
+        return $this->formatAgeParts($years, $months, $days);
+    }
+
+    private function formatAgeParts(int $years, int $months, int $days): string
+    {
+        $parts = [];
+
+        if ($years > 0) {
+            $parts[] = $years === 1 ? '1 año' : "{$years} años";
+        }
+
+        if ($months > 0) {
+            $parts[] = $months === 1 ? '1 mes' : "{$months} meses";
+        }
+
+        if ($days > 0) {
+            $parts[] = $days === 1 ? '1 día' : "{$days} días";
+        }
+
+        if ($parts === []) {
+            return 'Recién nacido';
+        }
+
+        if (count($parts) === 1) {
+            return $parts[0];
+        }
+
+        if (count($parts) === 2) {
+            return implode(' y ', $parts);
+        }
+
+        return implode(', ', array_slice($parts, 0, -1)).' y '.$parts[array_key_last($parts)];
     }
 
     /**
-     * Relación: Mascota pertenece a un usuario (aliado)
+     * Relacion: Mascota pertenece a un usuario aliado
      */
     public function user(): BelongsTo
     {
@@ -110,7 +168,7 @@ class Mascota extends Model
     }
 
     /**
-     * Relación: Mascota tiene múltiples imágenes ordenadas
+     * Relacion: Mascota tiene multiples imagenes ordenadas
      */
     public function images(): HasMany
     {
@@ -118,7 +176,7 @@ class Mascota extends Model
     }
 
     /**
-     * Relación: Mascota puede estar en favoritos de múltiples usuarios
+     * Relacion: Mascota puede estar en favoritos de multiples usuarios
      */
     public function favoritos()
     {
@@ -126,7 +184,7 @@ class Mascota extends Model
     }
 
     /**
-     * Relación many-to-many con usuarios que la han marcado como favorita
+     * Relacion many-to-many con usuarios que la han marcado como favorita
      */
     public function usuariosFavoritos()
     {

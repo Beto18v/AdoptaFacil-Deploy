@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import FormularioAdopcionModal from '@/components/ui/formulario-adopcion-modal';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useCarousel } from '@/hooks/use-carousel';
+import { formatPetAgeLabel } from '@/lib/pet-age';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Calendar, ChevronLeft, ChevronRight, Heart, MapPin, MessageCircle, Phone, Share2, ShoppingCart, Star, User, X } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -15,11 +16,11 @@ function useOptionalFavorites() {
     } catch {
         return {
             isFavorite: () => false,
-            toggleFavorite: async () => {},
+            toggleFavorite: async () => false,
             isLoading: false,
             isInitialized: false,
-            addToFavorites: async () => {},
-            removeFromFavorites: async () => {},
+            addToFavorites: async () => false,
+            removeFromFavorites: async () => false,
             refreshFavorites: async () => {},
             favoriteIds: [],
         };
@@ -54,6 +55,7 @@ interface Pet extends BaseItem {
     especie: string;
     raza?: string;
     edad: number;
+    edadTexto?: string;
     sexo?: string;
     ciudad?: string;
     descripcion: string;
@@ -68,6 +70,20 @@ interface CarouselModalProps {
     initialIndex: number;
 }
 
+function getPetAgeLabel(pet: Pet): string {
+    const formattedAge = formatPetAgeLabel(pet.edadTexto, pet.edad);
+
+    if (formattedAge !== 'Edad no especificada') {
+        return formattedAge;
+    }
+
+    if (pet.edad < 1) {
+        return 'Menos de 1 año';
+    }
+
+    return pet.edad === 1 ? '1 año' : `${pet.edad} años`;
+}
+
 export default function CarouselModal({ isOpen, onClose, items, initialIndex }: CarouselModalProps) {
     const [imageLoading, setImageLoading] = useState(true);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -76,7 +92,7 @@ export default function CarouselModal({ isOpen, onClose, items, initialIndex }: 
     const [favoriteChanges, setFavoriteChanges] = useState(false);
     const initializedRef = useRef(false);
 
-    const { isFavorite, toggleFavorite, isLoading: favoritesLoading, refreshFavorites } = useOptionalFavorites();
+    const { isFavorite, toggleFavorite, isLoading: favoritesLoading, refreshFavorites, isInitialized } = useOptionalFavorites();
 
     const { currentIndex, goToNext, goToPrevious } = useCarousel({
         totalItems: items.length,
@@ -172,7 +188,7 @@ export default function CarouselModal({ isOpen, onClose, items, initialIndex }: 
             e.stopPropagation();
             e.preventDefault();
 
-            if (currentItem?.type === 'pet' && !favoritesLoading) {
+            if (currentItem?.type === 'pet' && !favoritesLoading && isInitialized) {
                 const petId = currentItem.id;
                 const currentFavoriteState = getCurrentFavoriteState(petId);
 
@@ -183,7 +199,15 @@ export default function CarouselModal({ isOpen, onClose, items, initialIndex }: 
                     }));
 
                     setFavoriteChanges(true);
-                    await toggleFavorite(petId);
+                    const success = await toggleFavorite(petId);
+
+                    if (!success) {
+                        setFavoriteState((prev) => ({
+                            ...prev,
+                            [petId]: currentFavoriteState,
+                        }));
+                        setFavoriteChanges(false);
+                    }
                 } catch (error) {
                     console.error('Error al cambiar favorito:', error);
                     setFavoriteState((prev) => ({
@@ -194,13 +218,14 @@ export default function CarouselModal({ isOpen, onClose, items, initialIndex }: 
                 }
             }
         },
-        [currentItem, favoritesLoading, toggleFavorite, getCurrentFavoriteState],
+        [currentItem, favoritesLoading, isInitialized, toggleFavorite, getCurrentFavoriteState],
     );
 
     if (!isOpen || !currentItem) return null;
 
     const isProduct = currentItem.type === 'product';
-    const title = isProduct ? (currentItem as Product).nombre : (currentItem as Pet).name;
+    const currentPet = currentItem.type === 'pet' ? currentItem : null;
+    const title = currentItem.type === 'product' ? currentItem.nombre : currentItem.name;
 
     return (
         <>
@@ -263,7 +288,7 @@ export default function CarouselModal({ isOpen, onClose, items, initialIndex }: 
                                             variant="ghost"
                                             size="icon"
                                             onClick={handleFavoriteClick}
-                                            disabled={favoritesLoading}
+                                            disabled={favoritesLoading || !isInitialized}
                                             className="group relative rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm transition-all duration-300 hover:border-red-200/50 hover:bg-gradient-to-br hover:from-red-50 hover:to-pink-50 hover:shadow-lg hover:shadow-red-500/20 dark:border-gray-700/30 dark:bg-gray-800/20 dark:hover:from-red-900/20 dark:hover:to-pink-900/20"
                                             title={getCurrentFavoriteState(currentItem.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
                                         >
@@ -444,7 +469,7 @@ export default function CarouselModal({ isOpen, onClose, items, initialIndex }: 
                                                     <div>
                                                         <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Edad</p>
                                                         <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                                                            {(currentItem as Pet).edad} {(currentItem as Pet).edad === 1 ? 'año' : 'años'}
+                                                            {getPetAgeLabel(currentPet!)}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -455,11 +480,11 @@ export default function CarouselModal({ isOpen, onClose, items, initialIndex }: 
                                                     <div>
                                                         <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Sexo</p>
                                                         <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                                                            {(currentItem as Pet).sexo || 'No especificado'}
+                                                            {currentPet!.sexo || 'No especificado'}
                                                         </span>
                                                     </div>
                                                 </div>
-                                                {(currentItem as Pet).ciudad && (
+                                                {currentPet!.ciudad && (
                                                     <div className="col-span-1 flex items-center space-x-3 rounded-xl border border-purple-200/30 bg-gradient-to-r from-purple-50/50 via-blue-50/50 to-green-50/50 p-3 backdrop-blur-sm md:col-span-2 dark:border-purple-800/30 dark:from-purple-950/30 dark:via-blue-950/30 dark:to-green-950/30">
                                                         <div className="flex-shrink-0 rounded-lg bg-gradient-to-r from-purple-500 to-purple-600 p-2 text-white shadow-lg">
                                                             <MapPin className="h-4 w-4" />
@@ -467,7 +492,7 @@ export default function CarouselModal({ isOpen, onClose, items, initialIndex }: 
                                                         <div>
                                                             <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Ubicación</p>
                                                             <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                                                                {(currentItem as Pet).ciudad}
+                                                                {currentPet!.ciudad}
                                                             </span>
                                                         </div>
                                                     </div>

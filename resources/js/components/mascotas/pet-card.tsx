@@ -2,6 +2,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import FormularioAdopcionModal from '@/components/ui/formulario-adopcion-modal';
 import { useFavorites } from '@/contexts/FavoritesContext';
+import { formatPetAgeLabel } from '@/lib/pet-age';
 import { Heart, ShieldCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -11,6 +12,7 @@ interface PetCardProps {
     especie: string;
     raza?: string;
     edad: number;
+    edadTexto?: string;
     descripcion: string;
     imageUrl: string;
     shelter: string;
@@ -32,6 +34,7 @@ export default function PetCard({
     especie,
     raza,
     edad,
+    edadTexto,
     descripcion,
     imageUrl,
     shelter,
@@ -54,9 +57,7 @@ export default function PetCard({
     const handleFavoriteClick = async (e: React.MouseEvent) => {
         e.stopPropagation();
 
-        // Verificar si el contexto está inicializado
         if (!isInitialized) {
-            console.log('Contexto de favoritos no inicializado aún');
             return;
         }
 
@@ -67,16 +68,20 @@ export default function PetCard({
         onFavoriteChange?.(id, nextState);
 
         try {
-            await toggleFavorite(id);
+            const success = await toggleFavorite(id);
+
+            if (!success) {
+                setLocalIsFavorite(previousState);
+                onFavoriteChange?.(id, previousState);
+            }
         } catch {
             setLocalIsFavorite(previousState);
             onFavoriteChange?.(id, previousState);
         }
     };
 
-    // Función para obtener el color del badge según la especie
-    const getSpeciesBadgeColor = (especie: string) => {
-        switch (especie.toLowerCase()) {
+    const getSpeciesBadgeColor = (species: string) => {
+        switch (species.toLowerCase()) {
             case 'perro':
                 return 'from-blue-500 to-blue-600';
             case 'gato':
@@ -89,7 +94,6 @@ export default function PetCard({
     return (
         <>
             <div className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xl transition-all duration-500 hover:scale-105 hover:shadow-2xl dark:border-gray-700 dark:bg-gray-800">
-                {/* Badge de especie según PALETA */}
                 <div
                     className={`absolute top-4 right-4 z-10 rounded-full bg-gradient-to-r ${getSpeciesBadgeColor(especie)} px-3 py-1 text-xs font-semibold text-white shadow-lg`}
                 >
@@ -109,15 +113,12 @@ export default function PetCard({
                 <div className="bg-white p-6 dark:bg-gray-800 dark:text-gray-200">
                     <div className="space-y-4">
                         <div>
-                            {/* Información de raza y edad */}
                             <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                                {raza || 'Sin raza específica'} • {edad} {edad === 1 ? 'año' : 'años'}
+                                {raza || 'Sin raza especifica'} • {formatPetAgeLabel(edadTexto, edad)}
                             </p>
 
-                            {/* Nombre destacado */}
                             <h3 className="mb-2 text-xl font-bold text-gray-900 dark:text-white">{name}</h3>
 
-                            {/* Información adicional */}
                             <div className="mb-2 flex flex-wrap gap-2 text-sm text-gray-600 dark:text-gray-300">
                                 {sexo && (
                                     <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
@@ -131,10 +132,8 @@ export default function PetCard({
                                 )}
                             </div>
 
-                            {/* Descripción */}
                             <p className="line-clamp-2 text-sm text-gray-600 dark:text-gray-300">{descripcion}</p>
 
-                            {/* Información del refugio */}
                             <div className="mt-3 flex items-center text-sm text-gray-600 dark:text-gray-300">
                                 <ShieldCheck className="mr-2 h-4 w-4 text-green-500" />
                                 <Avatar className="mr-2 h-6 w-6 ring-2 ring-green-200 dark:ring-green-800">
@@ -148,12 +147,10 @@ export default function PetCard({
                         </div>
 
                         <div className="flex items-center justify-between pt-2">
-                            {/* Estado de adopción con gradiente */}
                             <div className="bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-sm font-bold text-transparent dark:from-green-400 dark:to-green-500">
-                                Disponible para adopción
+                                Disponible para adopcion
                             </div>
 
-                            {/* Botón con gradiente */}
                             <Button
                                 size="sm"
                                 className="z-20 bg-gradient-to-r from-green-500 to-green-700 px-4 py-2 font-semibold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:from-green-600 hover:to-green-800 hover:shadow-xl"
@@ -164,7 +161,6 @@ export default function PetCard({
                         </div>
                     </div>
 
-                    {/* Botón de favorito reposicionado */}
                     <Button
                         variant="ghost"
                         size="icon"
@@ -182,7 +178,6 @@ export default function PetCard({
                 </div>
             </div>
 
-            {/* Formulario de Adopción */}
             <FormularioAdopcionModal
                 show={showAdoptionForm}
                 onClose={() => setShowAdoptionForm(false)}

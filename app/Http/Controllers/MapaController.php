@@ -3,126 +3,132 @@
 namespace App\Http\Controllers;
 
 use App\Models\Shelter;
-use App\Models\Mascota;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 /**
  * Controlador del modulo de mapas.
- * Prepara refugios y mascotas georreferenciadas para la vista cartografica.
+ * Consolida mascotas y refugios por ciudad usando el valor almacenado en el registro.
  */
-
 class MapaController extends Controller
 {
     /**
-     * Muestra el mapa de refugios agrupando por refugio individual y filtrando por especie si se solicita.
+     * Muestra el mapa agrupando refugios por ciudad.
      *
-     * @param Request $request
      * @return \Inertia\Response
      */
     public function index(Request $request)
     {
-        // Leer el filtro de especie desde la query (?especie=perro o ?especie=gato)
-        $especie = $request->query('especie'); // null, 'perro', 'gato', etc.
+        $especie = (string) Str::of((string) $request->query('especie'))
+            ->trim()
+            ->lower();
 
-        // Obtener refugios con coordenadas exactas y sus mascotas
-        $sheltersWithCoordinates = Shelter::query()
+        $locationsData = Shelter::query()
             ->visible()
             ->with(['user.mascotas'])
-            ->whereNotNull('latitude')
-            ->whereNotNull('longitude')
-            ->get();
+            ->whereNotNull('city')
+            ->get()
+            ->map(function (Shelter $shelter) use ($especie) {
+                $city = (string) Str::of((string) $shelter->city)->trim()->squish();
 
-        // Mostrar cada refugio como un punto individual
-        $locationsData = $sheltersWithCoordinates->map(function ($shelter) use ($especie) {
-            // Filtrar mascotas por especie si se solicita
-            $mascotas = $shelter->user?->mascotas ?? collect();
-            if ($especie) {
-                $mascotas = $mascotas->where('especie', strtolower($especie));
-            }
-            return [
-                'id' => $shelter->id,
-                'city' => $shelter->city,
-                'name' => $shelter->name,
-                'count' => $mascotas->count(), // Solo mascotas de la especie filtrada
-                'shelters' => 1,
-                'lat' => (float) $shelter->latitude,
-                'lng' => (float) $shelter->longitude,
-                'address' => $shelter->address,
-            ];
-        })->filter(function ($location) {
-            return $location['count'] > 0; // Solo mostrar refugios con mascotas de la especie filtrada
-        });
+                if ($city === '') {
+                    return null;
+                }
 
-        // Fallback: Si no hay refugios con coordenadas, usar el método anterior
-        if ($locationsData->isEmpty()) {
-            $mascotasPorCiudad = Shelter::query()
-                ->visible()
-                ->with(['user.mascotas'])
-                ->whereNotNull('city')
-                ->get()
-                ->groupBy('city')
-                ->map(function ($shelters, $city) use ($especie) {
-                    $mascotas = collect();
-                    foreach ($shelters as $shelter) {
-                        $shelterMascotas = $shelter->user?->mascotas ?? collect();
-                        if ($especie) {
-                            $shelterMascotas = $shelterMascotas->where('especie', strtolower($especie));
-                        }
-                        $mascotas = $mascotas->merge($shelterMascotas);
-                    }
+                /** @var Collection<int, \App\Models\Mascota> $mascotas */
+                $mascotas = $shelter->user?->mascotas ?? collect();
 
-                    return [
-                        'city' => $city,
-                        'count' => $mascotas->count(),
-                        'shelters' => $shelters->count()
-                    ];
-                })
-                ->filter(function ($item) {
-                    return $item['count'] > 0; // Solo mostrar ciudades con mascotas de la especie filtrada
-                })
-                ->values();
+                if ($especie !== '') {
+                    $mascotas = $mascotas->filter(
+                        fn ($mascota) => Str::lower((string) $mascota->especie) === $especie,
+                    );
+                }
 
-            // Coordenadas de ciudades principales de Colombia (fallback)
-            $coordenadasCiudades = [
-                'Bogotá' => ['lat' => 4.6097, 'lng' => -74.0817],
-                'Medellín' => ['lat' => 6.2476, 'lng' => -75.5658],
-                'Cali' => ['lat' => 3.4516, 'lng' => -76.532],
-                'Barranquilla' => ['lat' => 10.9685, 'lng' => -74.7813],
-                'Cartagena' => ['lat' => 10.3932, 'lng' => -75.4832],
-                'Bucaramanga' => ['lat' => 7.1193, 'lng' => -73.1227],
-                'Pereira' => ['lat' => 4.8133, 'lng' => -75.6961],
-                'Santa Marta' => ['lat' => 11.2408, 'lng' => -74.2099],
-                'Manizales' => ['lat' => 5.0703, 'lng' => -75.5138],
-                'Ibagué' => ['lat' => 4.4389, 'lng' => -75.2322],
-            ];
-
-            $locationsData = $mascotasPorCiudad->map(function ($item) use ($coordenadasCiudades) {
-                $city = $item['city'];
-                $coordinates = $coordenadasCiudades[$city] ?? ['lat' => 4.6097, 'lng' => -74.0817];
+                if ($mascotas->isEmpty()) {
+                    return null;
+                }
 
                 return [
-                    'id' => uniqid(),
                     'city' => $city,
-                    'name' => $city,
-                    'count' => $item['count'],
-                    'shelters' => $item['shelters'],
-                    'lat' => $coordinates['lat'],
-                    'lng' => $coordinates['lng'],
-                    'address' => null,
+                    'count' => $mascotas->count(),
+                    'lat' => $shelter->latitude !== null ? (float) $shelter->latitude : null,
+                    'lng' => $shelter->longitude !== null ? (float) $shelter->longitude : null,
+                    'address' => $shelter->address ? (string) Str::of($shelter->address)->trim()->squish() : null,
+                    'shelter_id' => $shelter->id,
+                    'shelter_name' => $shelter->name,
                 ];
-            })->values(); // Asegurar que sea una colección con índices secuenciales
-        }
+            })
+            ->filter()
+            ->groupBy('city')
+            ->map(function (Collection $group, string $city) {
+                $locationsWithCoordinates = $group->filter(
+                    fn ($item) => $item['lat'] !== null && $item['lng'] !== null,
+                );
 
-        // (Log temporal eliminado)
+                if ($locationsWithCoordinates->isNotEmpty()) {
+                    $lat = round((float) $locationsWithCoordinates->avg('lat'), 6);
+                    $lng = round((float) $locationsWithCoordinates->avg('lng'), 6);
+                } else {
+                    ['lat' => $lat, 'lng' => $lng] = $this->fallbackCoordinates($city);
+                }
 
-        // Convertir la Collection a array para asegurar compatibilidad con JavaScript
-        $locationsArray = $locationsData->values()->toArray();
+                $addresses = $group
+                    ->pluck('address')
+                    ->filter()
+                    ->unique()
+                    ->values();
+
+                $shelterDetails = $group
+                    ->unique('shelter_id')
+                    ->map(fn ($item) => [
+                        'id' => (string) $item['shelter_id'],
+                        'name' => $item['shelter_name'],
+                        'address' => $item['address'],
+                    ])
+                    ->values();
+
+                return [
+                    'id' => 'city-'.Str::slug($city),
+                    'city' => $city,
+                    'count' => $group->sum('count'),
+                    'shelters' => $group->pluck('shelter_id')->unique()->count(),
+                    'lat' => $lat,
+                    'lng' => $lng,
+                    'address' => $addresses->first(),
+                    'addresses' => $addresses->all(),
+                    'shelterDetails' => $shelterDetails->all(),
+                ];
+            })
+            ->sortByDesc('count')
+            ->values();
 
         return Inertia::render('Dashboard/Mapa/index', [
-            'locations' => $locationsArray,
-            'totalMascotas' => is_array($locationsArray) ? array_sum(array_column($locationsArray, 'count')) : 0,
-            'totalCiudades' => is_array($locationsArray) ? count($locationsArray) : 0,
+            'locations' => $locationsData->toArray(),
+            'totalMascotas' => (int) $locationsData->sum('count'),
+            'totalCiudades' => $locationsData->count(),
         ]);
+    }
+
+    /**
+     * @return array{lat: float, lng: float}
+     */
+    private function fallbackCoordinates(string $city): array
+    {
+        $coordinates = [
+            'Bogotá' => ['lat' => 4.6097, 'lng' => -74.0817],
+            'Medellín' => ['lat' => 6.2476, 'lng' => -75.5658],
+            'Barranquilla' => ['lat' => 10.9685, 'lng' => -74.7813],
+            'Cartagena' => ['lat' => 10.3932, 'lng' => -75.4832],
+            'Bucaramanga' => ['lat' => 7.1193, 'lng' => -73.1227],
+            'Pereira' => ['lat' => 4.8133, 'lng' => -75.6961],
+            'Santa Marta' => ['lat' => 11.2408, 'lng' => -74.2099],
+            'Manizales' => ['lat' => 5.0703, 'lng' => -75.5138],
+            'Ibagué' => ['lat' => 4.4389, 'lng' => -75.2322],
+            'Cali' => ['lat' => 3.4516, 'lng' => -76.5320],
+        ];
+
+        return $coordinates[$city] ?? ['lat' => 4.6097, 'lng' => -74.0817];
     }
 }

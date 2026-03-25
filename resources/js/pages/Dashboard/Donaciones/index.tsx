@@ -31,6 +31,7 @@ type DonationType = {
     donor_email?: string | null;
     amount: number;
     created_at: string;
+    paid_at?: string | null;
     description?: string;
     status: DonationStatus;
     status_message?: string | null;
@@ -40,6 +41,7 @@ type DonationType = {
     can_resume_checkout: boolean;
     can_cancel_checkout: boolean;
     can_refresh_status: boolean;
+    is_imported?: boolean;
 };
 
 type DonationActionResponse = {
@@ -126,6 +128,7 @@ const buildImportedDonations = (items: ImportedDonationDraft[], shelter: Shelter
         donor_email: item.donor_email ?? null,
         amount: item.amount,
         created_at: `${item.created_at}T12:00:00.000Z`,
+        paid_at: `${item.created_at}T12:00:00.000Z`,
         description: item.description,
         status: 'completed',
         status_message: 'Registro importado manualmente.',
@@ -135,11 +138,20 @@ const buildImportedDonations = (items: ImportedDonationDraft[], shelter: Shelter
         can_resume_checkout: false,
         can_cancel_checkout: false,
         can_refresh_status: false,
+        is_imported: true,
         shelter: {
             id: shelter.id,
             name: shelter.name,
         },
     }));
+};
+
+const isCountableCompletedDonation = (donation: DonationType) => {
+    if (donation.status !== 'completed') {
+        return false;
+    }
+
+    return donation.is_imported === true || Boolean(donation.paid_at);
 };
 
 const DonationsTable = ({
@@ -638,7 +650,7 @@ export default function DonationsSummary() {
         await executeDonationAction(donation, route('donaciones.cancel-checkout', donation.id));
     };
 
-    const completedDonations = donationsState.filter((donation) => donation.status === 'completed');
+    const completedDonations = donationsState.filter(isCountableCompletedDonation);
 
     const stats = {
         totalAmount: completedDonations.reduce((acc, curr) => acc + parseFloat(curr.amount.toString()), 0),
@@ -647,11 +659,11 @@ export default function DonationsSummary() {
     };
 
     const handleGenerateReport = () => {
-        if (donationsState.length === 0) {
+        if (completedDonations.length === 0) {
             return;
         }
 
-        const reportDonations = donationsState.map((donation) => ({
+        const reportDonations = completedDonations.map((donation) => ({
             id: donation.id,
             donor_name: donation.donor_name,
             amount: donation.amount,

@@ -28,6 +28,7 @@ interface Mascota {
     especie: string;
     raza?: string;
     edad: number;
+    edad_formateada?: string;
     sexo: string;
     ciudad: string;
     descripcion: string;
@@ -66,7 +67,15 @@ function FavoritePetsContent({ favoritos = [] }: FavoritosProps) {
 
     const handleRemoveFavorite = async (mascotaId: number, e: React.MouseEvent) => {
         e.stopPropagation();
-        await removeFromFavorites(mascotaId);
+
+        const currentPets = favoritePets;
+        setFavoritePets((prev) => prev.filter((pet) => pet.id !== mascotaId));
+
+        const success = await removeFromFavorites(mascotaId);
+
+        if (!success) {
+            setFavoritePets(currentPets);
+        }
     };
 
     // Convertir favoritos al formato esperado por el modal
@@ -102,6 +111,7 @@ function FavoritePetsContent({ favoritos = [] }: FavoritosProps) {
                 especie: mascota.especie,
                 raza: mascota.raza,
                 edad: mascota.edad,
+                edadTexto: mascota.edad_formateada,
                 sexo: mascota.sexo,
                 ciudad: mascota.ciudad,
                 descripcion: mascota.descripcion,
@@ -207,7 +217,7 @@ function FavoritePetsContent({ favoritos = [] }: FavoritosProps) {
                                                     </span>
                                                     <button
                                                         onClick={(e) => handleRemoveFavorite(pet.id, e)}
-                                                        disabled={isLoading}
+                                                        disabled={isLoading || !isInitialized}
                                                         className="rounded-full bg-white/90 p-1.5 text-red-500 transition-colors hover:bg-red-100 disabled:opacity-50 dark:bg-gray-800/90 dark:hover:bg-red-900/20"
                                                     >
                                                         <Heart className="h-4 w-4 fill-current" />
