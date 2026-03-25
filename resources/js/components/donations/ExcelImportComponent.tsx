@@ -1,11 +1,12 @@
 import { backendJson } from '@/lib/http';
-import { useToastMessage } from '@/lib/toast';
+import { showToast, useToastMessage } from '@/lib/toast';
 import { useCallback, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useDropzone } from 'react-dropzone';
 import * as XLSX from 'xlsx';
 
-interface DonationData {
-    donor_name?: string;
+export interface ImportedDonationDraft {
+    donor_name: string;
     donor_email?: string;
     amount: number;
     created_at: string;
@@ -17,83 +18,191 @@ interface RawRowData {
 }
 
 interface ColumnMapping {
+    donor_name: string | null;
+    donor_email: string | null;
     amount: string | null;
     created_at: string | null;
     description: string | null;
 }
 
 interface ExcelImportComponentProps {
-    onImportSuccess: () => void;
+    onImportSuccess: (importedDonations: ImportedDonationDraft[]) => void;
 }
 
-const DONOR_NAME_ALIASES = ['donor_name', 'nombre_donante', 'donante', 'nombre', 'full_name'];
-const DONOR_EMAIL_ALIASES = ['donor_email', 'email', 'correo', 'correo_electronico', 'email_donante'];
+const ALIASES = {
+    donor_name: ['donor_name', 'nombre_donante', 'donante', 'nombre', 'full_name'],
+    donor_email: ['donor_email', 'correo_donante', 'email_donante', 'correo', 'email'],
+    amount: ['amount', 'monto', 'valor', 'importe', 'total'],
+    created_at: ['created_at', 'fecha', 'date', 'fecha_donacion'],
+    description: ['description', 'descripcion', 'detalle', 'concepto', 'observacion'],
+} as const;
 
-const normalizeColumnName = (value: string) => value.trim().toLowerCase().replace(/\s+/g, '_');
+const normalizeColumn = (value: string) => value.trim().toLowerCase().replace(/\s+/g, '_');
 
-const findOptionalColumnValue = (row: RawRowData, aliases: string[]): string | undefined => {
-    const match = Object.keys(row).find((key) => aliases.includes(normalizeColumnName(key)));
+const findColumn = (headers: string[], aliases: readonly string[]) =>
+    headers.find((header) => aliases.includes(normalizeColumn(header))) ?? null;
 
-    if (!match) {
-        return undefined;
+const formatDate = (year: number, month: number, day: number) =>
+    `${year.toString().padStart(4, '0')}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+
+const normalizeDonation = (item: ImportedDonationDraft): ImportedDonationDraft => ({
+    donor_name: item.donor_name.trim() || 'Donante importado',
+    donor_email: item.donor_email?.trim() || undefined,
+    amount: Number(item.amount),
+    created_at: item.created_at,
+    description: item.description?.trim() || undefined,
+});
+
+const parseAmount = (value: unknown, rowNumber: number): number => {
+    if (typeof value === 'number') {
+        if (Number.isFinite(value) && value > 0) {
+            return Number(value.toFixed(2));
+        }
+
+        throw new Error(`Monto invalido en la fila ${rowNumber}.`);
     }
 
-    const value = String(row[match] || '').trim();
+    const raw = String(value ?? '').trim();
+    const cleaned = raw.replace(/[^\d,.-]/g, '');
+    let normalized = cleaned;
 
-    return value || undefined;
+    if (cleaned.includes(',') && cleaned.includes('.')) {
+        normalized = cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.') ? cleaned.replace(/\./g, '').replace(',', '.') : cleaned.replace(/,/g, '');
+    } else if (cleaned.includes(',')) {
+        normalized = cleaned.replace(/\./g, '').replace(',', '.');
+    }
+
+    const amount = Number(normalized);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+        throw new Error(`Monto invalido en la fila ${rowNumber}: ${raw}`);
+    }
+
+    return Number(amount.toFixed(2));
+};
+
+const parseDate = (value: unknown, rowNumber: number): string => {
+    if (typeof value === 'number') {
+        const parsed = XLSX.SSF.parse_date_code(value);
+
+        if (!parsed) {
+            throw new Error(`Fecha invalida en la fila ${rowNumber}.`);
+        }
+
+        return formatDate(parsed.y, parsed.m, parsed.d);
+    }
+
+    const raw = String(value ?? '').trim();
+
+    if (!raw) {
+        throw new Error(`Fecha vacia en la fila ${rowNumber}.`);
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+        return raw;
+    }
+
+    const latinDate = raw.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (latinDate) {
+        return formatDate(Number(latinDate[3]), Number(latinDate[2]), Number(latinDate[1]));
+    }
+
+    const parsed = new Date(raw);
+
+    if (Number.isNaN(parsed.getTime())) {
+        throw new Error(`Fecha invalida en la fila ${rowNumber}: ${raw}`);
+    }
+
+    return formatDate(parsed.getUTCFullYear(), parsed.getUTCMonth() + 1, parsed.getUTCDate());
 };
 
 export function ExcelImportComponent({ onImportSuccess }: ExcelImportComponentProps) {
+    const [showImport, setShowImport] = useState(false);
     const [step, setStep] = useState<'upload' | 'mapping' | 'preview'>('upload');
-    const [rawData, setRawData] = useState<RawRowData[]>([]);
     const [columns, setColumns] = useState<string[]>([]);
-    const [columnMapping, setColumnMapping] = useState<ColumnMapping>({
+    const [rawData, setRawData] = useState<RawRowData[]>([]);
+    const [mapping, setMapping] = useState<ColumnMapping>({
+        donor_name: null,
+        donor_email: null,
         amount: null,
         created_at: null,
         description: null,
     });
-    const [previewData, setPreviewData] = useState<DonationData[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
+    const [previewData, setPreviewData] = useState<ImportedDonationDraft[]>([]);
     const [error, setError] = useState<string | null>(null);
-    const [showImport, setShowImport] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     useToastMessage(error, 'error');
 
+    const resetImport = () => {
+        setShowImport(false);
+        setStep('upload');
+        setColumns([]);
+        setRawData([]);
+        setMapping({
+            donor_name: null,
+            donor_email: null,
+            amount: null,
+            created_at: null,
+            description: null,
+        });
+        setPreviewData([]);
+        setError(null);
+        setIsLoading(false);
+    };
+
     const onDrop = useCallback((acceptedFiles: File[]) => {
         const file = acceptedFiles[0];
-        if (!file) return;
+
+        if (!file) {
+            return;
+        }
 
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = (event) => {
             try {
-                const data = e.target?.result;
-                const workbook = XLSX.read(data, { type: 'binary' });
-                const sheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[sheetName];
-                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                const workbook = XLSX.read(event.target?.result, { type: 'binary' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }) as unknown[][];
 
-                if (jsonData.length < 2) {
-                    setError('El archivo debe tener al menos una fila de datos además del encabezado');
+                if (rows.length < 2) {
+                    setError('El archivo debe incluir encabezados y al menos una fila con datos.');
                     return;
                 }
 
-                const headers = jsonData[0] as string[];
-                const rows = (jsonData.slice(1) as unknown[][]).map((row) => {
-                    const obj: RawRowData = {};
+                const headers = (rows[0] as string[]).map((header) => String(header || '').trim()).filter(Boolean);
+
+                if (headers.length === 0) {
+                    setError('No se encontraron encabezados validos en la primera fila.');
+                    return;
+                }
+
+                const parsedRows = rows.slice(1).map((row) => {
+                    const currentRow: RawRowData = {};
+
                     headers.forEach((header, index) => {
-                        obj[header] = row[index];
+                        currentRow[header] = row[index];
                     });
-                    return obj;
+
+                    return currentRow;
                 });
 
                 setColumns(headers);
-                setRawData(rows);
+                setRawData(parsedRows);
+                setMapping({
+                    donor_name: findColumn(headers, ALIASES.donor_name),
+                    donor_email: findColumn(headers, ALIASES.donor_email),
+                    amount: findColumn(headers, ALIASES.amount),
+                    created_at: findColumn(headers, ALIASES.created_at),
+                    description: findColumn(headers, ALIASES.description),
+                });
                 setStep('mapping');
                 setError(null);
             } catch {
-                setError('Error al leer el archivo. Asegúrate de que sea un archivo Excel válido.');
+                setError('No fue posible leer el archivo. Verifica que sea un Excel o CSV valido.');
             }
         };
+
         reader.readAsBinaryString(file);
     }, []);
 
@@ -108,525 +217,379 @@ export function ExcelImportComponent({ onImportSuccess }: ExcelImportComponentPr
     });
 
     const handleMappingComplete = () => {
-        if (!columnMapping.amount || !columnMapping.created_at) {
-            setError('Debes mapear al menos las columnas de Monto y Fecha');
+        if (!mapping.amount || !mapping.created_at) {
+            setError('Debes seleccionar monto y fecha para continuar.');
             return;
         }
 
         try {
-            const mappedData: DonationData[] = rawData
-                .map((row, index) => {
-                    const amount = parseFloat(String(row[columnMapping.amount!] || '0'));
-                    if (isNaN(amount) || amount <= 0) {
-                        throw new Error(`Monto inválido en la fila ${index + 2}: ${row[columnMapping.amount!]}`);
-                    }
+            const amountColumn = mapping.amount;
+            const dateColumn = mapping.created_at;
 
-                    const date = row[columnMapping.created_at!];
-                    let dateString: string;
+            if (!amountColumn || !dateColumn) {
+                setError('Debes seleccionar monto y fecha para continuar.');
+                return;
+            }
 
-                    if (typeof date === 'number') {
-                        // Fecha de Excel (número serial) - formatear directamente para evitar problemas de zona horaria
-                        const excelDate = XLSX.SSF.parse_date_code(date);
-                        dateString = `${excelDate.y.toString().padStart(4, '0')}-${excelDate.m.toString().padStart(2, '0')}-${excelDate.d.toString().padStart(2, '0')}`;
-                    } else if (typeof date === 'string') {
-                        // Para fechas string, intentar parsear y formatear como YYYY-MM-DD
-                        const parsed = new Date(date);
-                        if (isNaN(parsed.getTime())) {
-                            throw new Error(`Fecha inválida en la fila ${index + 2}: ${date}`);
-                        }
-                        // Usar UTC para evitar cambios de día por zona horaria
-                        const year = parsed.getUTCFullYear();
-                        const month = (parsed.getUTCMonth() + 1).toString().padStart(2, '0');
-                        const day = parsed.getUTCDate().toString().padStart(2, '0');
-                        dateString = `${year}-${month}-${day}`;
-                    } else {
-                        throw new Error(`Fecha inválida en la fila ${index + 2}: ${date}`);
-                    }
-
-                    return {
-                        donor_name: findOptionalColumnValue(row, DONOR_NAME_ALIASES),
-                        donor_email: findOptionalColumnValue(row, DONOR_EMAIL_ALIASES),
-                        amount,
-                        created_at: dateString,
-                        description: columnMapping.description ? String(row[columnMapping.description] || '').trim() : undefined,
-                    };
-                })
+            const mappedRows = rawData
+                .map((row, index) =>
+                    normalizeDonation({
+                        donor_name: String(mapping.donor_name ? row[mapping.donor_name] || '' : '').trim() || 'Donante importado',
+                        donor_email: String(mapping.donor_email ? row[mapping.donor_email] || '' : '').trim() || undefined,
+                        amount: parseAmount(row[amountColumn], index + 2),
+                        created_at: parseDate(row[dateColumn], index + 2),
+                        description: String(mapping.description ? row[mapping.description] || '' : '').trim() || undefined,
+                    }),
+                )
                 .filter((item) => item.amount > 0);
 
-            setPreviewData(mappedData);
+            if (mappedRows.length === 0) {
+                setError('No se encontraron filas validas para importar.');
+                return;
+            }
+
+            setPreviewData(mappedRows);
             setStep('preview');
             setError(null);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Error al procesar los datos');
+        } catch (currentError) {
+            setError(currentError instanceof Error ? currentError.message : 'No fue posible procesar el archivo.');
         }
     };
 
-    const handleEditPreviewData = (index: number, field: keyof DonationData, value: string | number) => {
-        setPreviewData((prev) => prev.map((item, i) => (i === index ? { ...item, [field]: value } : item)));
-    };
-
-    const handleRemoveRow = (index: number) => {
-        setPreviewData((prev) => prev.filter((_, i) => i !== index));
+    const handleEdit = (index: number, field: keyof ImportedDonationDraft, value: string | number) => {
+        setPreviewData((current) => current.map((item, currentIndex) => (currentIndex === index ? { ...item, [field]: value } : item)));
     };
 
     const handleImport = async () => {
         if (previewData.length === 0) {
-            setError('No hay datos para importar');
+            setError('No hay datos para importar.');
             return;
         }
 
         setIsLoading(true);
         setError(null);
 
+        const payload = previewData.map(normalizeDonation);
+
         try {
-            const { response, data } = await backendJson<{ error?: string }>(route('donaciones.import'), {
+            const { response, data } = await backendJson<{ error?: string; message?: string }>(route('donaciones.import'), {
                 method: 'POST',
-                json: { donations: previewData },
+                json: { donations: payload },
             });
 
             if (!response.ok) {
-                throw new Error(data?.error || 'Error al importar donaciones');
+                throw new Error(data?.error || 'No fue posible importar las donaciones.');
             }
 
-            onImportSuccess();
+            onImportSuccess(payload);
+            showToast(data?.message || `Se importaron ${payload.length} donaciones.`, 'success');
             resetImport();
-            setShowImport(false);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Error al importar donaciones');
+        } catch (currentError) {
+            setError(currentError instanceof Error ? currentError.message : 'No fue posible importar las donaciones.');
         } finally {
             setIsLoading(false);
         }
     };
 
-    const resetImport = () => {
-        setStep('upload');
-        setRawData([]);
-        setColumns([]);
-        setColumnMapping({ amount: null, created_at: null, description: null });
-        setPreviewData([]);
-        setError(null);
-        setIsLoading(false);
-    };
-
     if (!showImport) {
         return (
             <button
+                type="button"
                 onClick={() => setShowImport(true)}
-                className="group hover:shadow-3xl relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-500 to-blue-700 px-8 py-3 font-bold text-white shadow-2xl transition-all duration-300 hover:scale-105 hover:from-blue-600 hover:to-blue-800"
+                className="rounded-2xl bg-gradient-to-r from-blue-500 to-blue-700 px-6 py-3 font-semibold text-white shadow-xl transition-all duration-300 hover:scale-[1.02] hover:from-blue-600 hover:to-blue-800"
             >
-                <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
-                <span className="relative flex items-center gap-2">
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
-                        />
-                    </svg>
-                    Importar desde Excel
-                </span>
+                Importar donaciones
             </button>
         );
     }
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="relative mx-4 my-8 max-h-[calc(100vh-4rem)] w-full max-w-4xl overflow-hidden rounded-3xl bg-white/95 shadow-2xl backdrop-blur-sm dark:bg-gray-800/95">
-                {/* Elementos decorativos */}
-                <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-gradient-to-br from-blue-500/20 to-transparent blur-xl"></div>
-                <div className="absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-gradient-to-tr from-green-500/15 to-transparent blur-lg"></div>
-
-                <div className="relative max-h-[calc(100vh-4rem)] overflow-y-auto p-8">
-                    <div className="mb-8 flex items-center justify-between">
-                        <div>
-                            <h2 className="bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-3xl font-bold text-transparent dark:from-blue-400 dark:to-green-400">
-                                Importar Donaciones desde Excel
-                            </h2>
-                            <p className="mt-2 text-gray-600 dark:text-gray-300">Carga masivamente tus registros de donaciones</p>
-                        </div>
-                        <button
-                            onClick={() => {
-                                setShowImport(false);
-                                resetImport();
-                            }}
-                            className="group rounded-full p-2 text-gray-500 transition-all duration-200 hover:bg-red-100 hover:text-red-600 dark:text-gray-400 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-                        >
-                            <svg className="h-6 w-6 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
+    const modalContent = (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 px-4 py-6 backdrop-blur-sm">
+            <div className="flex min-h-full items-start justify-center">
+                <div className="my-4 w-full max-w-4xl overflow-hidden rounded-3xl bg-white/95 shadow-2xl dark:bg-gray-800/95">
+                    <div className="max-h-[calc(100vh-5rem)] overflow-y-auto p-6 sm:p-8">
+                <div className="mb-6 flex items-start justify-between gap-4">
+                    <div>
+                        <h2 className="bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-3xl font-bold text-transparent dark:from-blue-400 dark:to-green-400">
+                            Importar donaciones
+                        </h2>
+                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                            Sube el archivo, revisa el mapeo y agrega las donaciones sin recargar la vista.
+                        </p>
                     </div>
+                    <button
+                        type="button"
+                        onClick={resetImport}
+                        className="rounded-full p-2 text-gray-500 transition hover:bg-red-100 hover:text-red-600 dark:text-gray-400 dark:hover:bg-red-900/20"
+                        aria-label="Cerrar"
+                    >
+                        <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
 
-                    {step === 'upload' && (
-                        <div className="space-y-6">
-                            <div
-                                {...getRootProps()}
-                                className={`cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition-colors ${
-                                    isDragActive ? 'border-blue-500 bg-blue-50 dark:bg-blue-900' : 'border-gray-300 hover:border-gray-400'
-                                }`}
-                            >
-                                <input {...getInputProps()} />
-                                <div className="mb-4 text-6xl">📄</div>
-                                {isDragActive ? (
-                                    <p className="text-lg font-medium text-blue-600 dark:text-blue-400">Suelta el archivo aquí...</p>
-                                ) : (
-                                    <div className="space-y-2">
-                                        <p className="text-lg font-medium text-gray-700 dark:text-gray-300">Selecciona o arrastra un archivo Excel</p>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">Formatos soportados: .xlsx, .xls, .csv</p>
-                                    </div>
-                                )}
+                {step === 'upload' && (
+                    <div className="space-y-6">
+                        <div
+                            {...getRootProps()}
+                            className={`rounded-3xl border-2 border-dashed px-6 py-8 text-center transition md:px-8 md:py-10 ${
+                                isDragActive
+                                    ? 'border-blue-500 bg-blue-50 shadow-lg dark:bg-blue-900/20'
+                                    : 'border-gray-300 bg-white/70 hover:border-blue-400 hover:bg-blue-50/40 dark:border-gray-600 dark:bg-gray-900/20 dark:hover:bg-blue-900/10'
+                            }`}
+                        >
+                            <input {...getInputProps()} />
+                            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-r from-blue-500 to-green-600 text-white shadow-lg">
+                                <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M12 11v7m0 0l-3-3m3 3l3-3"
+                                    />
+                                </svg>
                             </div>
+                            <p className="text-xl font-semibold text-gray-800 dark:text-white">
+                                {isDragActive ? 'Suelta el archivo aqui' : 'Selecciona o arrastra un archivo Excel o CSV'}
+                            </p>
+                            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Formatos admitidos: .xlsx, .xls, .csv</p>
+                            <p className="mt-4 text-xs font-medium tracking-wide text-gray-400 uppercase dark:text-gray-500">
+                                Un archivo por importacion
+                            </p>
+                        </div>
 
-                            <div className="rounded-2xl bg-gradient-to-br from-blue-50/50 to-green-50/30 p-6 dark:from-blue-900/20 dark:to-green-900/20">
-                                <p className="mb-3 font-bold text-gray-700 dark:text-gray-300">📋 Formato esperado:</p>
-                                <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                                    <li className="flex items-start gap-2">
-                                        <span className="text-blue-500">•</span>
-                                        <span>
-                                            <strong>Monto:</strong> Valor numérico (requerido)
-                                        </span>
-                                    </li>
-                                    <li className="flex items-start gap-2">
-                                        <span className="text-green-500">•</span>
-                                        <span>
-                                            <strong>Fecha:</strong> Fecha de la donación (requerido)
-                                        </span>
-                                    </li>
-                                    <li className="flex items-start gap-2">
-                                        <span className="text-purple-500">•</span>
-                                        <span>
-                                            <strong>Descripción:</strong> Descripción de la donación (opcional)
-                                        </span>
-                                    </li>
-                                </ul>
+                        <div className="grid gap-4 xl:grid-cols-2">
+                            <div className="rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-50/90 to-indigo-50/70 p-5 text-sm text-gray-700 shadow-sm dark:border-blue-900/40 dark:from-blue-900/20 dark:to-indigo-900/10 dark:text-gray-300">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-500/15 text-blue-600 dark:text-blue-300">
+                                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6M7 8h10M5 5h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" />
+                                        </svg>
+                                    </div>
+                                    <p className="font-semibold text-blue-700 dark:text-blue-300">Campos recomendados</p>
+                                </div>
+                                <div className="mt-4 space-y-2 leading-relaxed">
+                                    <p>Requeridos: monto y fecha.</p>
+                                    <p>Opcionales: nombre del donante y descripcion.</p>
+                                    <p>Si falta el nombre, el sistema usara "Donante importado".</p>
+                                </div>
+                            </div>
+                            <div className="rounded-3xl border border-green-100 bg-gradient-to-br from-green-50/90 to-emerald-50/70 p-5 text-sm text-gray-700 shadow-sm dark:border-green-900/40 dark:from-green-900/20 dark:to-emerald-900/10 dark:text-gray-300">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-green-500/15 text-green-600 dark:text-green-300">
+                                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </div>
+                                    <p className="font-semibold text-green-700 dark:text-green-300">Antes de subir</p>
+                                </div>
+                                <div className="mt-4 space-y-2 leading-relaxed">
+                                    <p>Usa la primera fila como encabezado.</p>
+                                    <p>La fecha debe venir como fecha Excel, YYYY-MM-DD o DD/MM/YYYY.</p>
+                                    <p>El monto puede venir con formato de moneda.</p>
+                                </div>
                             </div>
                         </div>
-                    )}
+                    </div>
+                )}
 
-                    {step === 'mapping' && (
-                        <div className="space-y-6">
-                            <div className="text-center">
-                                <h3 className="bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-2xl font-bold text-transparent dark:from-blue-400 dark:to-green-400">
-                                    Mapear Columnas
-                                </h3>
-                                <p className="mt-2 text-gray-600 dark:text-gray-300">
-                                    Relaciona las columnas de tu archivo con los campos requeridos
-                                </p>
-                            </div>
+                {step === 'mapping' && (
+                    <div className="space-y-6">
+                        <div className="rounded-3xl border border-gray-200/70 bg-gray-50/80 p-4 text-sm text-gray-700 dark:border-gray-700/60 dark:bg-gray-900/20 dark:text-gray-300">
+                            Revisa las columnas sugeridas. Monto y fecha son obligatorias; las demas pueden quedar sin mapear.
+                        </div>
 
-                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                                <div className="relative space-y-3">
-                                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300">
-                                        💰 Monto <span className="text-red-500">*</span>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+                            {[
+                                { key: 'donor_name', label: 'Nombre donante', required: false },
+                                { key: 'donor_email', label: 'Correo donante', required: false },
+                                { key: 'amount', label: 'Monto', required: true },
+                                { key: 'created_at', label: 'Fecha', required: true },
+                                { key: 'description', label: 'Descripcion', required: false },
+                            ].map((field) => (
+                                <div key={field.key} className="space-y-2">
+                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                        {field.label}
+                                        {field.required && <span className="ml-1 text-red-500">*</span>}
                                     </label>
-                                    <div className="group relative">
-                                        <select
-                                            value={columnMapping.amount || ''}
-                                            onChange={(e) => setColumnMapping((prev) => ({ ...prev, amount: e.target.value || null }))}
-                                            className="w-full appearance-none rounded-xl border-2 border-gray-300 bg-gradient-to-r from-white to-gray-50 p-3 pr-12 text-gray-800 shadow-lg transition-all duration-200 hover:border-blue-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-200 focus:outline-none dark:border-gray-600 dark:from-gray-700 dark:to-gray-800 dark:text-white dark:hover:border-blue-500 dark:focus:border-blue-400 dark:focus:ring-blue-800/30"
-                                            style={{ backgroundImage: 'none' }}
-                                        >
-                                            <option value="" className="bg-gray-50 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-                                                -- Seleccionar columna --
+                                    <select
+                                        value={mapping[field.key as keyof ColumnMapping] || ''}
+                                        onChange={(event) =>
+                                            setMapping((current) => ({
+                                                ...current,
+                                                [field.key]: event.target.value || null,
+                                            }))
+                                        }
+                                        className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                                    >
+                                        <option value="">{field.required ? 'Seleccionar columna' : 'Sin mapear'}</option>
+                                        {columns.map((column) => (
+                                            <option key={column} value={column}>
+                                                {column}
                                             </option>
-                                            {columns.map((col) => (
-                                                <option
-                                                    key={col}
-                                                    value={col}
-                                                    className="bg-white py-2 text-gray-800 dark:bg-gray-700 dark:text-white"
-                                                >
-                                                    {col}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                                            <div className="rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 p-1 shadow-lg">
-                                                <svg
-                                                    className="h-4 w-4 text-white transition-transform duration-200 group-focus-within:rotate-180"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                                                </svg>
-                                            </div>
-                                        </div>
-                                    </div>
+                                        ))}
+                                    </select>
                                 </div>
+                            ))}
+                        </div>
 
-                                <div className="relative space-y-3">
-                                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300">
-                                        📅 Fecha <span className="text-red-500">*</span>
-                                    </label>
-                                    <div className="group relative">
-                                        <select
-                                            value={columnMapping.created_at || ''}
-                                            onChange={(e) => setColumnMapping((prev) => ({ ...prev, created_at: e.target.value || null }))}
-                                            className="w-full appearance-none rounded-xl border-2 border-gray-300 bg-gradient-to-r from-white to-gray-50 p-3 pr-12 text-gray-800 shadow-lg transition-all duration-200 hover:border-green-400 focus:border-green-500 focus:ring-4 focus:ring-green-200 focus:outline-none dark:border-gray-600 dark:from-gray-700 dark:to-gray-800 dark:text-white dark:hover:border-green-500 dark:focus:border-green-400 dark:focus:ring-green-800/30"
-                                            style={{ backgroundImage: 'none' }}
-                                        >
-                                            <option value="" className="bg-gray-50 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-                                                -- Seleccionar columna --
-                                            </option>
-                                            {columns.map((col) => (
-                                                <option
-                                                    key={col}
-                                                    value={col}
-                                                    className="bg-white py-2 text-gray-800 dark:bg-gray-700 dark:text-white"
-                                                >
-                                                    {col}
-                                                </option>
+                        <div className="overflow-hidden rounded-3xl border border-gray-200/60 shadow-lg dark:border-gray-700/60">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-gray-50/90 dark:bg-gray-800/60">
+                                        <tr>
+                                            {columns.map((column) => (
+                                                <th key={column} className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200">
+                                                    {column}
+                                                </th>
                                             ))}
-                                        </select>
-                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                                            <div className="rounded-lg bg-gradient-to-br from-green-500 to-green-700 p-1 shadow-lg">
-                                                <svg
-                                                    className="h-4 w-4 text-white transition-transform duration-200 group-focus-within:rotate-180"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                                                </svg>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="relative space-y-3">
-                                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300">📝 Descripción (opcional)</label>
-                                    <div className="group relative">
-                                        <select
-                                            value={columnMapping.description || ''}
-                                            onChange={(e) => setColumnMapping((prev) => ({ ...prev, description: e.target.value || null }))}
-                                            className="w-full appearance-none rounded-xl border-2 border-gray-300 bg-gradient-to-r from-white to-gray-50 p-3 pr-12 text-gray-800 shadow-lg transition-all duration-200 hover:border-purple-400 focus:border-purple-500 focus:ring-4 focus:ring-purple-200 focus:outline-none dark:border-gray-600 dark:from-gray-700 dark:to-gray-800 dark:text-white dark:hover:border-purple-500 dark:focus:border-purple-400 dark:focus:ring-purple-800/30"
-                                            style={{ backgroundImage: 'none' }}
-                                        >
-                                            <option value="" className="bg-gray-50 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-                                                -- Sin mapear --
-                                            </option>
-                                            {columns.map((col) => (
-                                                <option
-                                                    key={col}
-                                                    value={col}
-                                                    className="bg-white py-2 text-gray-800 dark:bg-gray-700 dark:text-white"
-                                                >
-                                                    {col}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                                            <div className="rounded-lg bg-gradient-to-br from-purple-500 to-purple-700 p-1 shadow-lg">
-                                                <svg
-                                                    className="h-4 w-4 text-white transition-transform duration-200 group-focus-within:rotate-180"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                                                </svg>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="mt-8">
-                                <h4 className="mb-4 text-lg font-bold text-gray-700 dark:text-gray-300">👀 Vista previa (primeras 3 filas):</h4>
-                                <div className="overflow-hidden rounded-2xl border-2 border-gray-200/50 shadow-lg dark:border-gray-700/50">
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-sm">
-                                            <thead className="bg-gradient-to-r from-gray-50/80 to-gray-100/80 dark:from-gray-700/80 dark:to-gray-600/80">
-                                                <tr>
-                                                    {columns.map((col) => (
-                                                        <th key={col} className="px-4 py-3 text-left font-bold text-gray-700 dark:text-gray-200">
-                                                            {col}
-                                                        </th>
-                                                    ))}
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {rawData.slice(0, 3).map((row, index) => (
-                                                    <tr
-                                                        key={index}
-                                                        className="border-t border-gray-200/30 hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-green-50/30 dark:border-gray-700/30 dark:hover:from-blue-900/20 dark:hover:to-green-900/20"
-                                                    >
-                                                        {columns.map((col) => (
-                                                            <td key={col} className="px-4 py-3 text-gray-600 dark:text-gray-300">
-                                                                {String(row[col] || '')}
-                                                            </td>
-                                                        ))}
-                                                    </tr>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {rawData.slice(0, 3).map((row, index) => (
+                                            <tr key={index} className="border-t border-gray-200/60 dark:border-gray-700/60">
+                                                {columns.map((column) => (
+                                                    <td key={column} className="px-4 py-3 text-gray-600 dark:text-gray-300">
+                                                        {String(row[column] || '')}
+                                                    </td>
                                                 ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="flex flex-col gap-4 pt-6 sm:flex-row sm:justify-end">
-                                <button
-                                    onClick={() => setStep('upload')}
-                                    className="group hover:shadow-3xl relative overflow-hidden rounded-3xl bg-gradient-to-r from-gray-400 to-gray-600 px-8 py-3 font-bold text-white shadow-2xl transition-all duration-300 hover:scale-105 dark:from-gray-600 dark:to-gray-800"
-                                >
-                                    <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
-                                    <span className="relative">← Volver</span>
-                                </button>
-                                <button
-                                    onClick={handleMappingComplete}
-                                    className="group hover:shadow-3xl relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-500 to-green-600 px-8 py-3 font-bold text-white shadow-2xl transition-all duration-300 hover:scale-105"
-                                >
-                                    <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
-                                    <span className="relative">Continuar →</span>
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    {step === 'preview' && (
-                        <div className="space-y-6">
-                            <div className="text-center">
-                                <h3 className="bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-2xl font-bold text-transparent dark:from-green-400 dark:to-blue-400">
-                                    Vista Previa y Edición
-                                </h3>
-                                <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-green-100 to-blue-100 px-4 py-2 text-sm font-bold text-gray-700 dark:from-green-900/50 dark:to-blue-900/50 dark:text-gray-300">
-                                    📊 {previewData.length} donaciones para importar
-                                </div>
-                            </div>
-
-                            <div className="overflow-hidden rounded-3xl border-2 border-gray-200/50 shadow-2xl dark:border-gray-700/50">
-                                <div className="max-h-[400px] overflow-y-auto">
-                                    <table className="w-full text-sm">
-                                        <thead className="sticky top-0 bg-gradient-to-r from-gray-50/95 to-gray-100/95 backdrop-blur-sm dark:from-gray-700/95 dark:to-gray-600/95">
-                                            <tr>
-                                                <th className="px-4 py-4 text-left font-bold text-gray-700 dark:text-gray-200">💰 Monto</th>
-                                                <th className="px-4 py-4 text-left font-bold text-gray-700 dark:text-gray-200">📅 Fecha</th>
-                                                <th className="px-4 py-4 text-left font-bold text-gray-700 dark:text-gray-200">📝 Descripción</th>
-                                                <th className="px-4 py-4 text-center font-bold text-gray-700 dark:text-gray-200">🗑️</th>
                                             </tr>
-                                        </thead>
-                                        <tbody>
-                                            {previewData.map((item, index) => (
-                                                <tr
-                                                    key={index}
-                                                    className="border-t border-gray-200/30 transition-all hover:bg-gradient-to-r hover:from-green-50/30 hover:to-blue-50/30 dark:border-gray-700/30 dark:hover:from-green-900/20 dark:hover:to-blue-900/20"
-                                                >
-                                                    <td className="px-4 py-3">
-                                                        <input
-                                                            type="number"
-                                                            value={item.amount}
-                                                            onChange={(e) => handleEditPreviewData(index, 'amount', parseFloat(e.target.value) || 0)}
-                                                            className="w-full rounded-xl border-2 border-gray-300 p-2 text-sm transition-all focus:border-green-500 focus:ring-2 focus:ring-green-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-green-400"
-                                                            min="0"
-                                                            step="0.01"
-                                                        />
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <input
-                                                            type="date"
-                                                            value={item.created_at}
-                                                            onChange={(e) => handleEditPreviewData(index, 'created_at', e.target.value)}
-                                                            className="w-full rounded-xl border-2 border-gray-300 p-2 text-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-blue-400"
-                                                        />
-                                                        <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                                            {new Date(item.created_at + 'T12:00:00').toLocaleDateString('es-CO', {
-                                                                year: 'numeric',
-                                                                month: 'long',
-                                                                day: 'numeric',
-                                                            })}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <textarea
-                                                            value={item.description || ''}
-                                                            onChange={(e) => handleEditPreviewData(index, 'description', e.target.value)}
-                                                            className="w-full resize-none rounded-xl border-2 border-gray-300 p-2 text-sm transition-all focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-purple-400"
-                                                            rows={2}
-                                                            placeholder="Descripción opcional..."
-                                                        />
-                                                    </td>
-                                                    <td className="px-4 py-3 text-center">
-                                                        <button
-                                                            onClick={() => handleRemoveRow(index)}
-                                                            className="group rounded-full p-2 text-red-500 transition-all hover:bg-red-100 hover:text-red-700 dark:hover:bg-red-900/20"
-                                                        >
-                                                            <svg
-                                                                className="h-5 w-5 transition-transform group-hover:scale-110"
-                                                                fill="none"
-                                                                stroke="currentColor"
-                                                                viewBox="0 0 24 24"
-                                                            >
-                                                                <path
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                    strokeWidth={2}
-                                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                                                />
-                                                            </svg>
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            <div className="flex flex-col gap-4 pt-6 sm:flex-row sm:justify-end">
-                                <button
-                                    onClick={() => setStep('mapping')}
-                                    className="group hover:shadow-3xl relative overflow-hidden rounded-3xl bg-gradient-to-r from-gray-400 to-gray-600 px-8 py-3 font-bold text-white shadow-2xl transition-all duration-300 hover:scale-105 dark:from-gray-600 dark:to-gray-800"
-                                >
-                                    <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
-                                    <span className="relative">← Volver</span>
-                                </button>
-                                <button
-                                    onClick={handleImport}
-                                    disabled={isLoading || previewData.length === 0}
-                                    className="group hover:shadow-3xl relative overflow-hidden rounded-3xl bg-gradient-to-r from-green-500 to-green-700 px-8 py-3 font-bold text-white shadow-2xl transition-all duration-300 hover:scale-105 disabled:scale-100 disabled:opacity-50"
-                                >
-                                    <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
-                                    <span className="relative flex items-center gap-2">
-                                        {isLoading ? (
-                                            <>
-                                                <svg className="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                                                    <circle
-                                                        cx="12"
-                                                        cy="12"
-                                                        r="10"
-                                                        stroke="currentColor"
-                                                        strokeWidth="4"
-                                                        className="opacity-25"
-                                                    ></circle>
-                                                    <path
-                                                        fill="currentColor"
-                                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                                        className="opacity-75"
-                                                    ></path>
-                                                </svg>
-                                                Importando...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth={2}
-                                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                                                    />
-                                                </svg>
-                                                Importar {previewData.length} donaciones
-                                            </>
-                                        )}
-                                    </span>
-                                </button>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
-                    )}
+
+                        <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                            <button type="button" onClick={() => setStep('upload')} className="rounded-2xl bg-gray-200 px-6 py-3 font-semibold text-gray-700 dark:bg-gray-700 dark:text-gray-200">
+                                Volver
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleMappingComplete}
+                                className="rounded-2xl bg-gradient-to-r from-blue-500 to-green-600 px-6 py-3 font-semibold text-white shadow-lg"
+                            >
+                                Continuar
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {step === 'preview' && (
+                    <div className="space-y-6">
+                        <div className="rounded-3xl border border-green-100 bg-green-50/70 p-4 text-sm text-gray-700 dark:border-green-900/40 dark:bg-green-900/20 dark:text-gray-300">
+                            Edita las filas si hace falta. Al importar se agregan a la tabla y quedan en estado completada.
+                        </div>
+
+                        <div className="overflow-hidden rounded-3xl border border-gray-200/60 shadow-xl dark:border-gray-700/60">
+                            <div className="max-h-[420px] overflow-auto">
+                                <table className="w-full text-sm">
+                                    <thead className="sticky top-0 bg-white/95 dark:bg-gray-800/95">
+                                        <tr>
+                                            <th className="px-4 py-4 text-left font-semibold text-gray-700 dark:text-gray-200">Nombre</th>
+                                            <th className="px-4 py-4 text-left font-semibold text-gray-700 dark:text-gray-200">Correo</th>
+                                            <th className="px-4 py-4 text-left font-semibold text-gray-700 dark:text-gray-200">Monto</th>
+                                            <th className="px-4 py-4 text-left font-semibold text-gray-700 dark:text-gray-200">Fecha</th>
+                                            <th className="px-4 py-4 text-left font-semibold text-gray-700 dark:text-gray-200">Descripcion</th>
+                                            <th className="px-4 py-4 text-center font-semibold text-gray-700 dark:text-gray-200">Accion</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {previewData.map((item, index) => (
+                                            <tr key={`${item.created_at}-${index}`} className="border-t border-gray-200/60 dark:border-gray-700/60">
+                                                <td className="px-4 py-3">
+                                                    <input
+                                                        type="text"
+                                                        value={item.donor_name}
+                                                        onChange={(event) => handleEdit(index, 'donor_name', event.target.value)}
+                                                        className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                                                    />
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <input
+                                                        type="email"
+                                                        value={item.donor_email || ''}
+                                                        onChange={(event) => handleEdit(index, 'donor_email', event.target.value)}
+                                                        className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                                                        placeholder="Opcional"
+                                                    />
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <input
+                                                        type="number"
+                                                        value={item.amount}
+                                                        onChange={(event) => handleEdit(index, 'amount', Number(event.target.value) || 0)}
+                                                        className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                                                        min="0"
+                                                        step="0.01"
+                                                    />
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <input
+                                                        type="date"
+                                                        value={item.created_at}
+                                                        onChange={(event) => handleEdit(index, 'created_at', event.target.value)}
+                                                        className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                                                    />
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <textarea
+                                                        value={item.description || ''}
+                                                        onChange={(event) => handleEdit(index, 'description', event.target.value)}
+                                                        className="w-full resize-none rounded-xl border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                                                        rows={2}
+                                                        placeholder="Opcional"
+                                                    />
+                                                </td>
+                                                <td className="px-4 py-3 text-center">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setPreviewData((current) => current.filter((_, currentIndex) => currentIndex !== index))}
+                                                        className="rounded-full p-2 text-red-500 transition hover:bg-red-100 hover:text-red-700 dark:hover:bg-red-900/20"
+                                                        aria-label="Eliminar fila"
+                                                    >
+                                                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth={2}
+                                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                                            />
+                                                        </svg>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                            <button type="button" onClick={() => setStep('mapping')} className="rounded-2xl bg-gray-200 px-6 py-3 font-semibold text-gray-700 dark:bg-gray-700 dark:text-gray-200">
+                                Volver
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleImport}
+                                disabled={isLoading || previewData.length === 0}
+                                className="rounded-2xl bg-gradient-to-r from-green-500 to-green-700 px-6 py-3 font-semibold text-white shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {isLoading ? 'Importando...' : `Importar ${previewData.length} donaciones`}
+                            </button>
+                        </div>
+                    </div>
+                )}
+                    </div>
                 </div>
             </div>
         </div>
     );
+
+    if (typeof document === 'undefined') {
+        return null;
+    }
+
+    return createPortal(modalContent, document.body);
 }

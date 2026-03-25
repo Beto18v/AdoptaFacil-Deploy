@@ -3,80 +3,61 @@
 namespace App\Http\Controllers;
 
 use App\Models\Shelter;
+use App\Models\ShelterPaymentMethod;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
-
-/**
- * Controlador del modulo de refugios.
- * Gestiona el directorio publico, el registro y la actualizacion basica de shelters.
- */
 
 class ShelterController extends Controller
 {
-    /**
-     * Muestra una lista de todos los refugios.
-     */
     public function index()
     {
-        // Obtenemos los refugios, contamos sus donaciones y los ordenamos
         $shelters = Shelter::query()
             ->visible()
             ->with('user')
-            ->withCount('donations') // Crea la columna 'donations_count'
-            ->orderBy('donations_count', 'desc') // Ordena de mayor a menor
+            ->withCount('donations')
+            ->orderBy('donations_count', 'desc')
             ->get();
 
-        // Renderizamos la vista y le pasamos los datos
-        //  'refugios.tsx', que se renderiza como 'refugios'.
         return Inertia::render('refugios', [
             'shelters' => $shelters,
         ]);
     }
 
-    /**
-     * Muestra el formulario para crear un nuevo refugio.
-     */
     public function create()
     {
         return Inertia::render('shelter/register');
     }
 
-    /**
-     * Almacena un nuevo refugio en la base de datos.
-     * (Este método también lo debes tener ya)
-     */
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
-        // 1. Valida que todos los campos del formulario sean correctos
-        // 1. Valida que todos los campos del formulario sean correctos, incluyendo lat/lng
-        $validatedData = $request->validate([
-            'name' => 'required|string|max:255|unique:shelters,name',
-            'description' => 'required|string|max:1000',
-            'address' => 'required|string|max:255',
-            'city' => 'required|string|max:100',
-            'phone' => 'required|string|max:20',
-            'bank_name' => 'required|string|max:100',
-            'account_type' => 'required|string|max:50',
-            'account_number' => 'required|string|max:50|unique:shelters,account_number',
-            'latitude' => 'required|numeric|between:-90,90',
-            'longitude' => 'required|numeric|between:-180,180',
-        ]);
-
-        // 2. Añade el ID del usuario actual (el aliado) a los datos validados
+        $validatedData = $this->validateShelter($request);
         $validatedData['user_id'] = Auth::id();
 
-        // 3. Crea el registro en la tabla 'shelters'
-        Shelter::create($validatedData);
+        $shelter = Shelter::create($this->extractShelterAttributes($validatedData));
 
-        // 4. Redirige al usuario de vuelta a la página de donaciones.
-        // Inertia recargará la página y el DonacionesController mostrará la nueva vista.
-        return redirect()->route('donaciones.index')->with('success', '¡Tu fundación ha sido registrada exitosamente!');
+        $this->syncPaymentMethod($shelter, $validatedData);
+
+        return redirect()->route('donaciones.index')->with('success', 'Tu fundacion ha sido registrada exitosamente.');
     }
 
-    /**
-     * API endpoint para obtener los refugios ordenados por cantidad de mascotas (de mayor a menor).
-     */
+    public function update(Request $request, Shelter $shelter): RedirectResponse
+    {
+        $user = $request->user();
+
+        abort_unless($user && ($user->id === $shelter->user_id || $user->role === 'admin'), 403);
+
+        $validatedData = $this->validateShelter($request, $shelter);
+
+        $shelter->update($this->extractShelterAttributes($validatedData));
+
+        $this->syncPaymentMethod($shelter, $validatedData);
+
+        return redirect()->route('donaciones.index')->with('success', 'El metodo de recepcion del refugio fue actualizado.');
+    }
+
     public function topShelters()
     {
         $shelters = Shelter::query()
@@ -95,12 +76,135 @@ class ShelterController extends Controller
                 return [
                     'id' => $shelter->id,
                     'name' => $shelter->name,
-                    'avatarUrl' => $shelter->user?->avatar ? asset('storage/' . $shelter->user->avatar) : '',
+                    'avatarUrl' => $shelter->user?->avatar ? asset('storage/'.$shelter->user->avatar) : '',
                     'mascotas' => $shelter->mascotas_count,
                     'link' => route('refugios'),
                 ];
             });
 
         return response()->json($shelters);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validateShelter(Request $request, ?Shelter $shelter = null): array
+    {
+        return $request->validate([
+            'name' => ['required', 'string', 'max:255', Rule::unique('shelters', 'name')->ignore($shelter)],
+            'description' => 'required|string|max:1000',
+            'address' => 'required|string|max:255',
+            'city' => 'required|string|max:100',
+            'phone' => 'required|string|max:20',
+            'payment_receiver_type' => ['required', Rule::in([
+                ShelterPaymentMethod::TYPE_BANK_ACCOUNT,
+                ShelterPaymentMethod::TYPE_NEQUI,
+                ShelterPaymentMethod::TYPE_DAVIPLATA,
+            ])],
+            'bank_name' => [
+                Rule::requiredIf(fn () => $request->input('payment_receiver_type') === ShelterPaymentMethod::TYPE_BANK_ACCOUNT),
+                'nullable',
+                'string',
+                'max:100',
+            ],
+            'account_type' => [
+                Rule::requiredIf(fn () => $request->input('payment_receiver_type') === ShelterPaymentMethod::TYPE_BANK_ACCOUNT),
+                'nullable',
+                Rule::in(['Ahorros', 'Corriente']),
+            ],
+            'account_number' => [
+                Rule::requiredIf(fn () => $request->input('payment_receiver_type') === ShelterPaymentMethod::TYPE_BANK_ACCOUNT),
+                'nullable',
+                'string',
+                'max:50',
+                Rule::unique('shelters', 'account_number')->ignore($shelter),
+            ],
+            'payment_receiver_phone' => [
+                Rule::requiredIf(fn () => in_array(
+                    $request->input('payment_receiver_type'),
+                    [ShelterPaymentMethod::TYPE_NEQUI, ShelterPaymentMethod::TYPE_DAVIPLATA],
+                    true,
+                )),
+                'nullable',
+                'string',
+                'max:20',
+            ],
+            'account_holder' => 'required|string|max:255',
+            'document_number' => 'nullable|string|max:50',
+            'latitude' => 'required|numeric|between:-90,90',
+            'longitude' => 'required|numeric|between:-180,180',
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $validatedData
+     * @return array<string, mixed>
+     */
+    private function extractShelterAttributes(array $validatedData): array
+    {
+        $isBankAccount = $validatedData['payment_receiver_type'] === ShelterPaymentMethod::TYPE_BANK_ACCOUNT;
+
+        $attributes = [
+            'name' => $validatedData['name'],
+            'description' => $validatedData['description'],
+            'address' => $validatedData['address'],
+            'city' => $validatedData['city'],
+            'phone' => $validatedData['phone'],
+            'latitude' => $validatedData['latitude'],
+            'longitude' => $validatedData['longitude'],
+            'bank_name' => $isBankAccount ? $validatedData['bank_name'] : null,
+            'account_type' => $isBankAccount ? $validatedData['account_type'] : null,
+            'account_number' => $isBankAccount ? $validatedData['account_number'] : null,
+        ];
+
+        if (array_key_exists('user_id', $validatedData)) {
+            $attributes['user_id'] = $validatedData['user_id'];
+        }
+
+        return $attributes;
+    }
+
+    /**
+     * @param  array<string, mixed>  $validatedData
+     */
+    private function syncPaymentMethod(Shelter $shelter, array $validatedData): void
+    {
+        $attributes = [
+            'type' => $validatedData['payment_receiver_type'],
+            'account_holder' => $validatedData['account_holder'],
+            'document_number' => $validatedData['document_number'] ?? null,
+            'bank_name' => $validatedData['payment_receiver_type'] === ShelterPaymentMethod::TYPE_BANK_ACCOUNT
+                ? $validatedData['bank_name']
+                : null,
+            'account_type' => $validatedData['payment_receiver_type'] === ShelterPaymentMethod::TYPE_BANK_ACCOUNT
+                ? $validatedData['account_type']
+                : null,
+            'account_number' => $validatedData['payment_receiver_type'] === ShelterPaymentMethod::TYPE_BANK_ACCOUNT
+                ? $validatedData['account_number']
+                : null,
+            'phone_number' => in_array(
+                $validatedData['payment_receiver_type'],
+                [ShelterPaymentMethod::TYPE_NEQUI, ShelterPaymentMethod::TYPE_DAVIPLATA],
+                true,
+            )
+                ? ($validatedData['payment_receiver_phone'] ?? null)
+                : null,
+            'is_active' => true,
+        ];
+
+        $currentMethod = $shelter->paymentMethods()
+            ->where('is_active', true)
+            ->latest('id')
+            ->first();
+
+        if ($currentMethod) {
+            $currentMethod->update($attributes);
+        } else {
+            $currentMethod = $shelter->paymentMethods()->create($attributes);
+        }
+
+        $shelter->paymentMethods()
+            ->whereKeyNot($currentMethod->id)
+            ->update(['is_active' => false]);
     }
 }

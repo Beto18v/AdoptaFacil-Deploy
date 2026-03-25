@@ -7,7 +7,7 @@ Este documento explica el despliegue de la app Laravel (Inertia + React) en **Az
 - App: Laravel 12 (PHP)
 - Frontend: Inertia + React + Vite
 - Hosting: Azure App Service (PaaS)
-- DB: SQLite (archivo en el filesystem de App Service)
+- DB: SQLite (solo para pruebas o escenarios temporales; no recomendado para pagos reales en producción)
 - CI/CD: GitHub Actions → `azure/webapps-deploy`
 
 ## 2) Creación de recursos en Azure
@@ -34,6 +34,11 @@ SQLite:
 
 - `DB_CONNECTION=sqlite`
 - `DB_DATABASE=/home/site/wwwroot/database/database.sqlite`
+
+Advertencia:
+
+- Para despliegues productivos con donaciones reales, no se recomienda mantener SQLite dentro de `wwwroot`.
+- La recomendación es migrar a Azure Database for MySQL o PostgreSQL antes de operar pagos reales.
 
 Otras:
 
@@ -83,20 +88,17 @@ Normalmente la DB se crea al conectar; si falla por permisos/ruta, crear el arch
 
 ## 6) Observaciones sobre SQLite
 
-SQLite es una opción viable para este escenario inicial por:
+SQLite puede servir para ambientes locales, sandbox o demos de una sola instancia, pero no debería ser la base objetivo para producción si el sistema va a procesar donaciones reales.
 
-- Tráfico bajo
-- 1 instancia
-- Necesidad de minimizar costos/recursos
+Riesgos concretos en App Service:
 
-No recomendado cuando:
+- el despliegue por ZIP publica contenido en `/home/site/wwwroot`, por lo que dejar la base dentro del árbol desplegado aumenta el riesgo operativo
+- SQLite no es adecuada para escenarios con más concurrencia, reintentos de webhook ni escalamiento horizontal
+- para pagos y trazabilidad financiera, la recomendación es usar una base administrada desde el primer entorno productivo
 
-- Se requiere alta concurrencia
-- Se quiere escalar horizontalmente
+Recomendación:
 
-Migración futura:
-
-- Azure Database for MySQL (PaaS) o PostgreSQL.
+- Azure Database for MySQL o PostgreSQL
 
 ## 7) Costos / consumo
 

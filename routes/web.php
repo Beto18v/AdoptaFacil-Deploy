@@ -61,6 +61,12 @@ Route::get('/refugios', [ShelterController::class, 'index'])->name('refugios');
 Route::post('/shelters', [ShelterController::class, 'store'])
     ->middleware(['auth', 'verified'])
     ->name('shelter.store');
+Route::put('/shelters/{shelter}', [ShelterController::class, 'update'])
+    ->middleware(['auth', 'verified'])
+    ->name('shelter.update');
+
+Route::post('/webhooks/wompi/donaciones', [DonacionesController::class, 'handleWompiWebhook'])
+    ->name('donaciones.wompi.webhook');
 
 /**
  * Rutas públicas especiales
@@ -177,6 +183,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('donaciones', [DonacionesController::class, 'index'])->name('donaciones.index');
     // Procesar nueva donación
     Route::post('donaciones', [DonacionesController::class, 'store'])->name('donaciones.store');
+    Route::get('donaciones/pago/retorno', [DonacionesController::class, 'handleWompiReturn'])->name('donaciones.wompi.return');
     // Importar donaciones desde Excel (solo para refugios)
     Route::post('donaciones/import', [DonacionesController::class, 'importDonations'])->name('donaciones.import');
 
