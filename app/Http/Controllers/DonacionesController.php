@@ -22,6 +22,8 @@ use Inertia\Response;
 
 class DonacionesController extends Controller
 {
+    private const MIN_DONATION_AMOUNT = 10000;
+
     public function index(WompiService $wompiService): Response
     {
         /** @var User $user */
@@ -62,9 +64,11 @@ class DonacionesController extends Controller
         $validatedData = $request->validate([
             'donor_name' => 'required|string|max:255',
             'donor_email' => 'required|email|max:255',
-            'amount' => 'required|numeric|min:1000',
+            'amount' => 'required|numeric|min:'.self::MIN_DONATION_AMOUNT,
             'description' => 'nullable|string|max:500',
             'shelter_id' => 'required|exists:shelters,id',
+        ], [
+            'amount.min' => 'El monto minimo para donar es de $10.000 COP.',
         ]);
 
         $shelter = Shelter::query()->visible()->find($validatedData['shelter_id']);
@@ -397,7 +401,9 @@ class DonacionesController extends Controller
 
         if ($user->role === 'aliado') {
             if ($user->shelter) {
-                $query->where('shelter_id', $user->shelter->id);
+                $query
+                    ->where('shelter_id', $user->shelter->id)
+                    ->where('status', Donation::STATUS_COMPLETED);
             } else {
                 $query->whereRaw('1 = 0');
             }

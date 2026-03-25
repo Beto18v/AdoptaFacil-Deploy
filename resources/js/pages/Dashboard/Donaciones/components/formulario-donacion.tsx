@@ -31,6 +31,8 @@ type DonationResponse = {
     errors?: Partial<Record<keyof DonationForm, string[]>>;
 };
 
+const MIN_DONATION_AMOUNT = 10000;
+
 export default function FormularioDonacion({ showModal, onClose, shelters }: FormularioDonacionProps) {
     const page = usePage();
     const auth = (page.props as unknown as { auth: { user: { name?: string; email?: string } } }).auth;
@@ -44,6 +46,8 @@ export default function FormularioDonacion({ showModal, onClose, shelters }: For
 
     const [montoPersonalizado, setMontoPersonalizado] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const amountValue = Number(data.amount || 0);
+    const isAmountValid = Number.isFinite(amountValue) && amountValue >= MIN_DONATION_AMOUNT;
 
     const formatCurrency = (amount: string | number | bigint) => {
         const numericAmount = typeof amount === 'string' ? Number(amount) : amount;
@@ -53,16 +57,27 @@ export default function FormularioDonacion({ showModal, onClose, shelters }: For
     const handleMontoClick = (monto: string) => {
         setData('amount', monto);
         setMontoPersonalizado('');
+        clearErrors();
     };
 
     const handleMontoPersonalizadoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setMontoPersonalizado(e.target.value);
         setData('amount', e.target.value);
+
+        if (e.target.value === '' || Number(e.target.value) >= MIN_DONATION_AMOUNT) {
+            clearErrors();
+        }
     };
 
     const handleSubmit: FormEventHandler = async (e) => {
         e.preventDefault();
         clearErrors();
+
+        if (!isAmountValid) {
+            setError('amount', `El monto minimo para donar es de ${formatCurrency(MIN_DONATION_AMOUNT)}.`);
+            return;
+        }
+
         setIsSubmitting(true);
 
         try {
@@ -238,7 +253,6 @@ export default function FormularioDonacion({ showModal, onClose, shelters }: For
                                     </button>
                                 ))}
                             </div>
-                            <InputError message={errors.amount} className="mt-2" />
                         </div>
 
                         <div>
@@ -250,15 +264,19 @@ export default function FormularioDonacion({ showModal, onClose, shelters }: For
                                 type="number"
                                 value={montoPersonalizado}
                                 onChange={handleMontoPersonalizadoChange}
-                                placeholder="Ej: 10000 (minimo)"
+                                min={MIN_DONATION_AMOUNT}
+                                step="1000"
+                                placeholder={`Ej: ${MIN_DONATION_AMOUNT} (minimo)`}
                                 className="w-full rounded-xl border-2 border-gray-300 bg-gradient-to-r from-white to-gray-50 p-4 text-gray-800 shadow-lg transition-all duration-200 focus:border-green-500 focus:ring-4 focus:ring-green-200 dark:border-gray-600 dark:from-gray-700 dark:to-gray-800 dark:text-white dark:focus:border-green-400 dark:focus:ring-green-800/30"
                             />
+                            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Monto minimo: {formatCurrency(MIN_DONATION_AMOUNT)}</p>
+                            <InputError message={errors.amount} className="mt-2" />
                         </div>
 
                         <div className="mt-8 text-center">
                             <Button
                                 type="submit"
-                                disabled={isSubmitting || !data.amount || !data.shelter_id}
+                                disabled={isSubmitting || !data.amount || !data.shelter_id || !isAmountValid}
                                 className="group hover:shadow-3xl relative w-full overflow-hidden rounded-3xl bg-gradient-to-r from-purple-500 to-purple-700 px-8 py-4 text-lg font-bold text-white shadow-2xl transition-all duration-300 hover:scale-105 hover:from-purple-600 hover:to-purple-800 disabled:scale-100 disabled:cursor-not-allowed disabled:from-gray-400 disabled:to-gray-600 disabled:opacity-50"
                             >
                                 <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>

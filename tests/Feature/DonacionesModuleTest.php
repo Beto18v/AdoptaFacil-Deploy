@@ -90,7 +90,7 @@ function buildWompiWebhookPayload(array $transactionOverrides = [], ?string $eve
     ];
 }
 
-test('ally only sees donations from their shelter in the donations dashboard', function () {
+test('ally only sees completed donations from their shelter in the donations dashboard', function () {
     $ally = User::factory()->create([
         'email_verified_at' => now(),
         'role' => 'aliado',
@@ -111,6 +111,16 @@ test('ally only sees donations from their shelter in the donations dashboard', f
         'amount' => 50000,
         'description' => 'Aporte visible',
         'shelter_id' => $shelter->id,
+        'status' => Donation::STATUS_COMPLETED,
+    ]);
+
+    Donation::create([
+        'donor_name' => 'Donante pendiente mismo refugio',
+        'donor_email' => 'pendiente@example.com',
+        'amount' => 10000,
+        'description' => 'No debe verse',
+        'shelter_id' => $shelter->id,
+        'status' => Donation::STATUS_PENDING,
     ]);
 
     Donation::create([
@@ -119,6 +129,7 @@ test('ally only sees donations from their shelter in the donations dashboard', f
         'amount' => 25000,
         'description' => 'Aporte oculto',
         'shelter_id' => $otherShelter->id,
+        'status' => Donation::STATUS_COMPLETED,
     ]);
 
     $this->actingAs($ally)
@@ -130,6 +141,54 @@ test('ally only sees donations from their shelter in the donations dashboard', f
             ->where('donations.0.id', $visibleDonation->id)
             ->where('donations.0.shelter.id', $shelter->id)
             ->where('auth.user.shelter.id', $shelter->id));
+});
+
+test('admin sees donations from every shelter and every status in the donations dashboard', function () {
+    $admin = User::factory()->create([
+        'email_verified_at' => now(),
+        'role' => 'admin',
+    ]);
+    $ally = User::factory()->create([
+        'email_verified_at' => now(),
+        'role' => 'aliado',
+    ]);
+    $otherAlly = User::factory()->create([
+        'email_verified_at' => now(),
+        'role' => 'aliado',
+    ]);
+
+    $shelter = createShelterForDonationTests($ally);
+    $otherShelter = createShelterForDonationTests($otherAlly, [
+        'account_number' => 'ACC-' . $otherAlly->id . '-ADMIN',
+    ]);
+
+    Donation::create([
+        'donor_name' => 'Donacion completada',
+        'donor_email' => 'completada@example.com',
+        'amount' => 70000,
+        'shelter_id' => $shelter->id,
+        'status' => Donation::STATUS_COMPLETED,
+    ]);
+
+    Donation::create([
+        'donor_name' => 'Donacion pendiente',
+        'donor_email' => 'pendiente-admin@example.com',
+        'amount' => 40000,
+        'shelter_id' => $otherShelter->id,
+        'status' => Donation::STATUS_PENDING,
+    ]);
+
+    $this->actingAs($admin)
+        ->get(route('donaciones.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Dashboard/Donaciones/index')
+            ->has('donations', 2)
+            ->where('donations', fn ($donations) => collect($donations)
+                ->pluck('status')
+                ->sort()
+                ->values()
+                ->all() === [Donation::STATUS_COMPLETED, Donation::STATUS_PENDING]));
 });
 
 test('client only sees their own donations in the donations dashboard', function () {
@@ -258,6 +317,36 @@ test('direct donations are created as initiated and return a resumable wompi che
     expect($donation->gateway)->toBe(Donation::GATEWAY_WOMPI);
     expect($donation->reference)->not->toBeNull();
     expect($response->json('checkout_url'))->toContain('https://checkout.wompi.test/p/?');
+});
+
+test('direct donations reject amounts below ten thousand pesos', function () {
+    configureWompiForDonationTests();
+
+    $client = User::factory()->create([
+        'email_verified_at' => now(),
+        'role' => 'cliente',
+        'name' => 'Cliente Minimo',
+        'email' => 'minimo@example.com',
+    ]);
+    $ally = User::factory()->create([
+        'email_verified_at' => now(),
+        'role' => 'aliado',
+    ]);
+
+    $shelter = createShelterForDonationTests($ally);
+
+    $this->actingAs($client)
+        ->postJson(route('donaciones.store'), [
+            'donor_name' => $client->name,
+            'donor_email' => $client->email,
+            'amount' => 5000,
+            'description' => 'Monto invalido',
+            'shelter_id' => $shelter->id,
+        ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['amount']);
+
+    expect(Donation::count())->toBe(0);
 });
 
 test('direct donations always use the authenticated user identity', function () {
