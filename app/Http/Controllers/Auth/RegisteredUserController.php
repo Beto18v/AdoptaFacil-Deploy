@@ -3,18 +3,18 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Mail\WelcomeMail;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rules;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
-use Illuminate\Validation\ValidationException;
 
 class RegisteredUserController extends Controller
 {
@@ -33,7 +33,6 @@ class RegisteredUserController extends Controller
      *
      * @throws \Illuminate\Validation\ValidationException
      */
-
     public function store(Request $request): RedirectResponse
     {
         // 1. Validamos los datos
@@ -74,19 +73,13 @@ class RegisteredUserController extends Controller
             ]);
         }
 
-        // 6. Enviar email de bienvenida de forma determinista
+        // 6. Enviar email de bienvenida igual que en Google OAuth:
+        // inmediato, sin depender de workers de cola en producción.
         try {
-            $mail = \Illuminate\Support\Facades\Mail::to($user->email);
-            $welcomeMail = new \App\Mail\WelcomeMail($user);
-
-            if (config('queue.default') === 'sync') {
-                $mail->send($welcomeMail);
-            } else {
-                $mail->queue($welcomeMail);
-            }
+            Mail::to($user)->send(new WelcomeMail($user));
         } catch (\Exception $e) {
             // Log del error pero no fallar el registro
-            \Illuminate\Support\Facades\Log::warning('Error enviando email de bienvenida: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::warning('Error enviando email de bienvenida: '.$e->getMessage());
         }
 
         // 7. Iniciamos sesión y redirigimos
@@ -97,9 +90,11 @@ class RegisteredUserController extends Controller
         if (session()->has('url.intended')) {
             $intended = session('url.intended');
             session()->forget('url.intended');
+
             return redirect($intended);
         }
         $url = route('dashboard', absolute: false);
+
         return redirect($url)->header('X-Inertia-Location', $url);
     }
 }
