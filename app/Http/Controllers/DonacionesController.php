@@ -127,7 +127,7 @@ class DonacionesController extends Controller
         $transactionId = $request->string('id')->trim()->value();
 
         if (blank($transactionId)) {
-            return redirect()->route('donaciones.index')->with(
+            return $this->redirectAfterWompiReturn(
                 'warning',
                 'No fue posible identificar la transaccion de Wompi. Si saliste del checkout, puedes continuarlo o cancelarlo desde la tabla.',
             );
@@ -141,7 +141,7 @@ class DonacionesController extends Controller
                 'message' => $exception->getMessage(),
             ]);
 
-            return redirect()->route('donaciones.index')->with(
+            return $this->redirectAfterWompiReturn(
                 'warning',
                 'Volviste desde Wompi, pero no fue posible consultar el estado final del pago.',
             );
@@ -158,7 +158,7 @@ class DonacionesController extends Controller
                 'reference' => $transaction['reference'] ?? null,
             ]);
 
-            return redirect()->route('donaciones.index')->with(
+            return $this->redirectAfterWompiReturn(
                 'warning',
                 'El pago fue procesado en Wompi, pero no se encontro la donacion en la plataforma.',
             );
@@ -173,7 +173,7 @@ class DonacionesController extends Controller
 
         [$flashType, $message] = $this->paymentStatusMessage($donation->fresh());
 
-        return redirect()->route('donaciones.index')->with($flashType, $message);
+        return $this->redirectAfterWompiReturn($flashType, $message);
     }
 
     public function handleWompiWebhook(Request $request, WompiService $wompiService): JsonResponse
@@ -510,9 +510,22 @@ class DonacionesController extends Controller
             return;
         }
 
-        $this->filteredDonationsQuery($user)
+        $query = Donation::query()
             ->where('gateway', Donation::GATEWAY_WOMPI)
             ->whereIn('status', Donation::openStatuses())
+            ->orderBy('created_at', 'desc');
+
+        if ($user->role === 'aliado') {
+            if (! $user->shelter) {
+                return;
+            }
+
+            $query->where('shelter_id', $user->shelter->id);
+        } elseif ($user->role === 'cliente') {
+            $query->where('donor_email', $user->email);
+        }
+
+        $query
             ->limit(10)
             ->get()
             ->each(fn (Donation $donation) => $wompiService->syncOpenDonation($donation));
@@ -579,5 +592,16 @@ class DonacionesController extends Controller
             Donation::STATUS_INITIATED => 'El checkout aun no genera una transaccion consultable.',
             default => 'Estado actualizado.',
         };
+    }
+
+    private function redirectAfterWompiReturn(string $flashType, string $message): RedirectResponse
+    {
+        if (Auth::check()) {
+            return redirect()->route('donaciones.index')->with($flashType, $message);
+        }
+
+        session()->put('url.intended', route('donaciones.index'));
+
+        return redirect()->route('login')->with($flashType, $message);
     }
 }

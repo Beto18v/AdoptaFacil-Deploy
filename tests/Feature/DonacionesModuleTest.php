@@ -768,3 +768,93 @@ test('wompi return route syncs the donation state from the transaction lookup', 
     expect($donation->gateway_transaction_id)->toBe('tx-retorno');
     expect($donation->gateway_payment_method)->toBe('PSE');
 });
+
+test('wompi return route can sync the donation state without an authenticated session', function () {
+    configureWompiForDonationTests();
+
+    $donation = Donation::create([
+        'donor_name' => 'Cliente Invitado',
+        'donor_email' => 'guest-retorno@example.com',
+        'amount' => 55000,
+        'status' => Donation::STATUS_PENDING,
+        'gateway' => Donation::GATEWAY_WOMPI,
+        'reference' => 'DON-RETORNO-GUEST-001',
+    ]);
+
+    Http::fake([
+        'https://sandbox.wompi.test/v1/transactions/tx-retorno-guest' => Http::response([
+            'data' => [
+                'id' => 'tx-retorno-guest',
+                'reference' => $donation->reference,
+                'status' => 'APPROVED',
+                'amount_in_cents' => 5500000,
+                'payment_method_type' => 'NEQUI',
+            ],
+        ], 200),
+    ]);
+
+    $this->get(route('donaciones.wompi.return', ['id' => 'tx-retorno-guest']))
+        ->assertRedirect(route('login'))
+        ->assertSessionHas('success', 'Tu donacion fue completada exitosamente.')
+        ->assertSessionHas('url.intended', route('donaciones.index'));
+
+    $donation->refresh();
+
+    expect($donation->status)->toBe(Donation::STATUS_COMPLETED);
+    expect($donation->gateway_transaction_id)->toBe('tx-retorno-guest');
+    expect($donation->gateway_payment_method)->toBe('NEQUI');
+    expect($donation->paid_at)->not->toBeNull();
+});
+
+test('ally dashboard auto syncs open wompi donations from their shelter before calculating the summary', function () {
+    configureWompiForDonationTests();
+
+    $ally = User::factory()->create([
+        'email_verified_at' => now(),
+        'role' => 'aliado',
+    ]);
+
+    $shelter = createShelterForDonationTests($ally);
+
+    $donation = Donation::create([
+        'donor_name' => 'Donante Pendiente',
+        'donor_email' => 'pendiente-aliado@example.com',
+        'amount' => 65000,
+        'shelter_id' => $shelter->id,
+        'status' => Donation::STATUS_PENDING,
+        'gateway' => Donation::GATEWAY_WOMPI,
+        'reference' => 'DON-ALLY-SYNC-001',
+        'gateway_transaction_id' => 'tx-ally-sync-001',
+        'gateway_payload' => [
+            'checkout' => [
+                'created_at' => now()->subMinutes(2)->toIso8601String(),
+            ],
+        ],
+    ]);
+
+    Http::fake([
+        'https://sandbox.wompi.test/v1/transactions/tx-ally-sync-001' => Http::response([
+            'data' => [
+                'id' => 'tx-ally-sync-001',
+                'reference' => $donation->reference,
+                'status' => 'APPROVED',
+                'amount_in_cents' => 6500000,
+                'payment_method_type' => 'PSE',
+            ],
+        ], 200),
+    ]);
+
+    $this->actingAs($ally)
+        ->get(route('donaciones.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Dashboard/Donaciones/index')
+            ->has('donations', 1)
+            ->where('donations.0.id', $donation->id)
+            ->where('donations.0.status', Donation::STATUS_COMPLETED));
+
+    $donation->refresh();
+
+    expect($donation->status)->toBe(Donation::STATUS_COMPLETED);
+    expect($donation->paid_at)->not->toBeNull();
+});
