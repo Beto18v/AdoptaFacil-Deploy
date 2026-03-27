@@ -6,6 +6,7 @@
 // resources/js/pages/Dashboard/VerMascotasProductos/components/registrar-mascota.tsx
 // Componente modal para registrar nuevas mascotas con sistema de múltiples imágenes (hasta 3)
 
+import { buildImagePreviews, prepareImageSelection } from '@/lib/image-upload';
 import { useForm } from '@inertiajs/react';
 import { Plus, X } from 'lucide-react'; // Iconos para agregar y eliminar imágenes
 import React, { useEffect, useRef, useState } from 'react';
@@ -516,27 +517,27 @@ export default function RegistrarMascota({
     }, [isOpen, modoEdicion, mascotaEditar, reset, setData]);
 
     // Función para manejar múltiples imágenes (máximo 3)
-    const handleAddImages = (files: FileList | null) => {
+    const handleAddImages = async (files: FileList | null) => {
         if (!files) return;
 
-        const newFiles = Array.from(files);
-        const totalExistingImages = imagenesExistentes.length + additionalFiles.length;
-        const availableSlots = 3 - totalExistingImages; // Calcula espacios disponibles
-        const filesToAdd = newFiles.slice(0, availableSlots);
+        const selection = await prepareImageSelection(additionalFiles, Array.from(files));
 
-        if (filesToAdd.length > 0) {
-            const updatedFiles = [...additionalFiles, ...filesToAdd];
-            setAdditionalFiles(updatedFiles);
-            setData('imagenes', updatedFiles);
+        if (selection.error) {
+            setMensaje(`Error: ${selection.error}`);
+        } else {
+            const previews = await buildImagePreviews(selection.files);
+            setAdditionalFiles(selection.files);
+            setImagePreviews(previews);
+            setData('imagenes', selection.files);
 
             // Genera previews para las nuevas imágenes
-            filesToAdd.forEach((file) => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    setImagePreviews((prev) => [...prev, e.target?.result as string]);
-                };
-                reader.readAsDataURL(file);
-            });
+            if (selection.truncated) {
+                setMensaje('Error: solo puedes cargar hasta 3 imagenes por mascota.');
+            }
+        }
+
+        if (multipleFileInputRef.current) {
+            multipleFileInputRef.current.value = '';
         }
     };
 

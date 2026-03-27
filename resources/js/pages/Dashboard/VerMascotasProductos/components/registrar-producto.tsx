@@ -1,4 +1,5 @@
 // Componente modal para registro de productos con sistema de múltiples imágenes
+import { buildImagePreviews, prepareImageSelection } from '@/lib/image-upload';
 import { useForm } from '@inertiajs/react';
 import { Plus, X } from 'lucide-react'; // Iconos para UI de imágenes
 import React, { useEffect, useRef, useState } from 'react';
@@ -141,27 +142,26 @@ export default function RegistrarProducto({ isOpen, onClose, setMensaje, product
     }, [isOpen, modoEdicion, productoEditar, reset, setData]);
 
     // Maneja la selección de múltiples imágenes (máximo 3)
-    const handleAddImages = (files: FileList | null) => {
+    const handleAddImages = async (files: FileList | null) => {
         if (!files) return;
 
-        const newFiles = Array.from(files);
-        const totalExistingImages = imagenesExistentes.length + additionalFiles.length;
-        const availableSlots = 3 - totalExistingImages; // Espacios disponibles
-        const filesToAdd = newFiles.slice(0, availableSlots);
+        const selection = await prepareImageSelection(additionalFiles, Array.from(files));
 
-        if (filesToAdd.length > 0) {
-            const updatedFiles = [...additionalFiles, ...filesToAdd];
-            setAdditionalFiles(updatedFiles);
-            setData('imagenes', updatedFiles);
+        if (selection.error) {
+            setMensaje(`Error: ${selection.error}`);
+        } else {
+            const previews = await buildImagePreviews(selection.files);
+            setAdditionalFiles(selection.files);
+            setImagePreviews(previews);
+            setData('imagenes', selection.files);
 
-            // Genera previews para mostrar al usuario
-            filesToAdd.forEach((file) => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    setImagePreviews((prev) => [...prev, e.target?.result as string]);
-                };
-                reader.readAsDataURL(file);
-            });
+            if (selection.truncated) {
+                setMensaje('Error: solo puedes cargar hasta 3 imagenes por producto.');
+            }
+        }
+
+        if (multipleFileInputRef.current) {
+            multipleFileInputRef.current.value = '';
         }
     };
 
