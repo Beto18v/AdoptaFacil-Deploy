@@ -1,13 +1,13 @@
 const KB = 1024;
 const MB = 1024 * KB;
-const SAFE_MULTIPART_OVERHEAD_BYTES = 128 * KB;
+const SAFE_MULTIPART_OVERHEAD_BYTES = 160 * KB;
 
 export const MAX_UPLOAD_IMAGES = 3;
-export const MAX_IMAGE_FILE_SIZE_BYTES = 2 * MB;
-export const SAFE_TOTAL_IMAGE_BYTES = 4 * MB - SAFE_MULTIPART_OVERHEAD_BYTES;
+export const MAX_IMAGE_FILE_SIZE_BYTES = 900 * KB;
+export const SAFE_TOTAL_IMAGE_BYTES = MB - SAFE_MULTIPART_OVERHEAD_BYTES;
 
-const MAX_IMAGE_DIMENSION = 1600;
-const JPEG_QUALITIES = [0.9, 0.82, 0.74, 0.66, 0.58, 0.5, 0.42, 0.34];
+const MAX_IMAGE_DIMENSIONS = [1280, 1024, 896, 768, 640];
+const JPEG_QUALITIES = [0.82, 0.72, 0.62, 0.52, 0.44, 0.36, 0.3];
 
 type PreparedImageSelection = {
     files: File[];
@@ -55,7 +55,7 @@ export async function prepareImageSelection(currentFiles: File[], incomingFiles:
 
         let preparedFile = file;
 
-        if (file.size > targetBytesPerFile) {
+        if (file.size > targetBytesPerFile || file.type !== 'image/jpeg') {
             try {
                 preparedFile = await optimizeImageForUpload(file, targetBytesPerFile);
             } catch {
@@ -73,7 +73,7 @@ export async function prepareImageSelection(currentFiles: File[], incomingFiles:
                 files: currentFiles,
                 optimized: false,
                 truncated: false,
-                error: `La imagen "${file.name}" supera el maximo de 2MB por archivo.`,
+                error: `La imagen "${file.name}" supera el maximo seguro permitido para subirla desde el movil.`,
             };
         }
 
@@ -102,8 +102,12 @@ export async function prepareImageSelection(currentFiles: File[], incomingFiles:
     };
 }
 
-export async function buildImagePreviews(files: File[]): Promise<string[]> {
-    return Promise.all(files.map(readFileAsDataUrl));
+export function buildImagePreviewUrls(files: File[]): string[] {
+    return files.map((file) => URL.createObjectURL(file));
+}
+
+export function revokeImagePreviewUrls(previewUrls: string[]): void {
+    previewUrls.forEach((previewUrl) => URL.revokeObjectURL(previewUrl));
 }
 
 async function optimizeImageForUpload(file: File, targetBytes: number): Promise<File> {
@@ -112,33 +116,35 @@ async function optimizeImageForUpload(file: File, targetBytes: number): Promise<
     }
 
     const image = await loadImage(file);
-    const dimensions = scaleDimensions(image.width, image.height, MAX_IMAGE_DIMENSION);
-    const canvas = document.createElement('canvas');
-
-    canvas.width = dimensions.width;
-    canvas.height = dimensions.height;
-
-    const context = canvas.getContext('2d');
-
-    if (!context) {
-        throw new Error('canvas-not-supported');
-    }
-
-    context.fillStyle = '#ffffff';
-    context.fillRect(0, 0, dimensions.width, dimensions.height);
-    context.drawImage(image, 0, 0, dimensions.width, dimensions.height);
-
     let smallestBlob: Blob | null = null;
 
-    for (const quality of JPEG_QUALITIES) {
-        const blob = await canvasToBlob(canvas, quality);
+    for (const maxDimension of MAX_IMAGE_DIMENSIONS) {
+        const dimensions = scaleDimensions(image.width, image.height, maxDimension);
+        const canvas = document.createElement('canvas');
 
-        if (!smallestBlob || blob.size < smallestBlob.size) {
-            smallestBlob = blob;
+        canvas.width = dimensions.width;
+        canvas.height = dimensions.height;
+
+        const context = canvas.getContext('2d');
+
+        if (!context) {
+            throw new Error('canvas-not-supported');
         }
 
-        if (blob.size <= targetBytes) {
-            return blobToFile(blob, file);
+        context.fillStyle = '#ffffff';
+        context.fillRect(0, 0, dimensions.width, dimensions.height);
+        context.drawImage(image, 0, 0, dimensions.width, dimensions.height);
+
+        for (const quality of JPEG_QUALITIES) {
+            const blob = await canvasToBlob(canvas, quality);
+
+            if (!smallestBlob || blob.size < smallestBlob.size) {
+                smallestBlob = blob;
+            }
+
+            if (blob.size <= targetBytes) {
+                return blobToFile(blob, file);
+            }
         }
     }
 
@@ -206,23 +212,5 @@ function loadImage(file: File): Promise<HTMLImageElement> {
         };
 
         image.src = objectUrl;
-    });
-}
-
-function readFileAsDataUrl(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-
-        reader.onload = () => {
-            if (typeof reader.result === 'string') {
-                resolve(reader.result);
-                return;
-            }
-
-            reject(new Error('preview-generation-failed'));
-        };
-
-        reader.onerror = () => reject(new Error('preview-generation-failed'));
-        reader.readAsDataURL(file);
     });
 }

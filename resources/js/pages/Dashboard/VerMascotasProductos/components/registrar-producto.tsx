@@ -1,5 +1,5 @@
 // Componente modal para registro de productos con sistema de múltiples imágenes
-import { buildImagePreviews, prepareImageSelection } from '@/lib/image-upload';
+import { buildImagePreviewUrls, prepareImageSelection, revokeImagePreviewUrls } from '@/lib/image-upload';
 import { useForm } from '@inertiajs/react';
 import { Plus, X } from 'lucide-react'; // Iconos para UI de imágenes
 import React, { useEffect, useRef, useState } from 'react';
@@ -38,6 +38,8 @@ export default function RegistrarProducto({ isOpen, onClose, setMensaje, product
     const [additionalFiles, setAdditionalFiles] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
     const [imagenesExistentes, setImagenesExistentes] = useState<string[]>([]);
+
+    useEffect(() => () => revokeImagePreviewUrls(imagePreviews), [imagePreviews]);
 
     // Cierra el modal al hacer clic fuera
     useEffect(() => {
@@ -150,13 +152,15 @@ export default function RegistrarProducto({ isOpen, onClose, setMensaje, product
         if (selection.error) {
             setMensaje(`Error: ${selection.error}`);
         } else {
-            const previews = await buildImagePreviews(selection.files);
+            const previews = buildImagePreviewUrls(selection.files);
             setAdditionalFiles(selection.files);
             setImagePreviews(previews);
             setData('imagenes', selection.files);
 
             if (selection.truncated) {
                 setMensaje('Error: solo puedes cargar hasta 3 imagenes por producto.');
+            } else if (selection.optimized) {
+                setMensaje('Las imagenes se optimizaron automaticamente para que suban mejor desde el movil.');
             }
         }
 
@@ -168,7 +172,7 @@ export default function RegistrarProducto({ isOpen, onClose, setMensaje, product
     // Elimina imagen individual del array
     const removeImage = (indexToRemove: number) => {
         const updatedFiles = additionalFiles.filter((_, index) => index !== indexToRemove);
-        const updatedPreviews = imagePreviews.filter((_, index) => index !== indexToRemove);
+        const updatedPreviews = buildImagePreviewUrls(updatedFiles);
 
         setAdditionalFiles(updatedFiles);
         setImagePreviews(updatedPreviews);
@@ -390,7 +394,9 @@ export default function RegistrarProducto({ isOpen, onClose, setMensaje, product
                                             ? '📸 Seleccionar imágenes del producto'
                                             : `➕ Agregar más imágenes (${3 - (imagenesExistentes.length + additionalFiles.length)} disponibles)`}
                                     </span>
-                                    <span className="mt-1 text-xs text-gray-500 dark:text-gray-400">PNG, JPG, GIF • Máximo 2MB cada una</span>
+                                    <span className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                        Se optimizan automaticamente para una subida mas rapida y segura en movil
+                                    </span>
                                 </label>
                             )}
 

@@ -6,7 +6,7 @@
 // resources/js/pages/Dashboard/VerMascotasProductos/components/registrar-mascota.tsx
 // Componente modal para registrar nuevas mascotas con sistema de múltiples imágenes (hasta 3)
 
-import { buildImagePreviews, prepareImageSelection } from '@/lib/image-upload';
+import { buildImagePreviewUrls, prepareImageSelection, revokeImagePreviewUrls } from '@/lib/image-upload';
 import { useForm } from '@inertiajs/react';
 import { Plus, X } from 'lucide-react'; // Iconos para agregar y eliminar imágenes
 import React, { useEffect, useRef, useState } from 'react';
@@ -303,6 +303,8 @@ export default function RegistrarMascota({
     // Estado para mostrar edad calculada
     const [edadCalculada, setEdadCalculada] = useState<string>('');
 
+    useEffect(() => () => revokeImagePreviewUrls(imagePreviews), [imagePreviews]);
+
     // Efecto para limpiar la raza cuando cambie la especie
     useEffect(() => {
         if (data.especie && data.raza) {
@@ -525,7 +527,7 @@ export default function RegistrarMascota({
         if (selection.error) {
             setMensaje(`Error: ${selection.error}`);
         } else {
-            const previews = await buildImagePreviews(selection.files);
+            const previews = buildImagePreviewUrls(selection.files);
             setAdditionalFiles(selection.files);
             setImagePreviews(previews);
             setData('imagenes', selection.files);
@@ -533,6 +535,8 @@ export default function RegistrarMascota({
             // Genera previews para las nuevas imágenes
             if (selection.truncated) {
                 setMensaje('Error: solo puedes cargar hasta 3 imagenes por mascota.');
+            } else if (selection.optimized) {
+                setMensaje('Las imagenes se optimizaron automaticamente para que suban mejor desde el movil.');
             }
         }
 
@@ -544,7 +548,7 @@ export default function RegistrarMascota({
     // Elimina una imagen específica del array
     const removeImage = (indexToRemove: number) => {
         const updatedFiles = additionalFiles.filter((_, index) => index !== indexToRemove);
-        const updatedPreviews = imagePreviews.filter((_, index) => index !== indexToRemove);
+        const updatedPreviews = buildImagePreviewUrls(updatedFiles);
 
         setAdditionalFiles(updatedFiles);
         setImagePreviews(updatedPreviews);
@@ -884,7 +888,9 @@ export default function RegistrarMascota({
                                             ? '📸 Seleccionar imágenes de tu mascota'
                                             : `➕ Agregar más imágenes (${3 - (imagenesExistentes.length + additionalFiles.length)} disponibles)`}
                                     </span>
-                                    <span className="mt-1 text-xs text-gray-500 dark:text-gray-400">PNG, JPG, GIF • Máximo 2MB cada una</span>
+                                    <span className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                        Se optimizan automaticamente para una subida mas rapida y segura en movil
+                                    </span>
                                 </label>
                             )}
 
