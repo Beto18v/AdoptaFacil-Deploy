@@ -268,7 +268,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Ver detalles de mascota específica (para edición)
         Route::get('/{mascota}', [MascotaController::class, 'show'])->name('show');
         // Actualizar mascota existente (PUT estándar)
-        Route::put('/{mascota}', [MascotaController::class, 'update'])->name('update');
+    Route::match(['put','post'], '/{mascota}', [MascotaController::class, 'update'])->name('update');
         // Eliminar mascota
         Route::delete('/{mascota}', [MascotaController::class, 'destroy'])->name('destroy');
     });
